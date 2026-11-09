@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import { X, GraduationCap, LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { X, LogIn, UserPlus, ArrowRight } from 'lucide-react';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -18,10 +18,8 @@ export default function MobileMenu({ open, onClose }: { open: boolean; onClose: 
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
       <div className="absolute left-0 top-0 h-full w-80 max-w-[85%] bg-white shadow-2xl animate-slide-in-right flex flex-col">
         <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4">
-          <Link to="/" onClick={onClose} className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg gradient-brand text-white">
-              <GraduationCap className="h-5 w-5" />
-            </span>
+          <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
+            <img src="/Gemini_Generated_Image_77j82y77j82y77j8.jpg" alt="FluentaRise logo" className="h-9 w-9 rounded-lg object-cover" />
             <span className="text-lg font-extrabold tracking-tight text-brand-900">
               Fluenta<span className="text-accent-500">Rise</span>
             </span>

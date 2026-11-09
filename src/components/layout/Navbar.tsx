@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, Menu, GraduationCap, X } from 'lucide-react';
+import { Search, ShoppingCart, Menu, X } from 'lucide-react';
 import { useCart } from '@/store/cart';
 import MobileMenu from './MobileMenu';
 
@@ -46,10 +46,8 @@ export default function Navbar() {
       >
         <div className="container-page flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg gradient-brand text-white">
-              <GraduationCap className="h-5 w-5" />
-            </span>
+          <Link to="/" className="flex items-center gap-2.5 shrink-0">
+            <img src="/Gemini_Generated_Image_77j82y77j82y77j8.jpg" alt="FluentaRise logo" className="h-9 w-9 rounded-lg object-cover" />
             <span className="text-lg font-extrabold tracking-tight text-brand-900">
               Fluenta<span className="text-accent-500">Rise</span>
             </span>

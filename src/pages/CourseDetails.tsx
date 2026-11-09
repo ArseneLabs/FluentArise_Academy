@@ -9,7 +9,6 @@ import { useCart } from '@/store/cart';
 import { useToast } from '@/store/toast';
 import StarRating from '@/components/ui/StarRating';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import CourseCard from '@/components/ui/CourseCard';
 
 type Tab = 'information' | 'curriculum' | 'instructor' | 'reviews';
 
@@ -19,12 +18,13 @@ export default function CourseDetails() {
   const [tab, setTab] = useState<Tab>('information');
   const [previewLecture, setPreviewLecture] = useState<string | null>(null);
 
+  const add = useCart((s) => s.add);
+  const inCart = useCart((s) => (course ? s.has(course.id) : false));
+  const push = useToast((s) => s.push);
+
   if (!course) return <Navigate to="/courses" replace />;
 
   const instructor = getInstructor(course.instructorId);
-  const add = useCart((s) => s.add);
-  const inCart = useCart((s) => s.has(course.id));
-  const push = useToast((s) => s.push);
 
   const handleAdd = () => {
     const added = add(course);

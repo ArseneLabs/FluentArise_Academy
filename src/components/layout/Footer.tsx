@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { GraduationCap, Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Instagram, ArrowRight } from 'lucide-react';
+import { Phone, Mail, MapPin, Facebook, Twitter, Linkedin, Instagram, ArrowRight } from 'lucide-react';
 
 const columns = [
   {
@@ -60,10 +60,8 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
           {/* Brand */}
           <div className="col-span-2 lg:col-span-2">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 text-white">
-                <GraduationCap className="h-5 w-5" />
-              </span>
+            <Link to="/" className="flex items-center gap-2.5">
+              <img src="/Gemini_Generated_Image_77j82y77j82y77j8.jpg" alt="FluentaRise logo" className="h-9 w-9 rounded-lg object-cover" />
               <span className="text-lg font-extrabold tracking-tight">
                 Fluenta<span className="text-accent-400">Rise</span>
               </span>

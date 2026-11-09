@@ -1,7 +1,6 @@
 import { MapPin, Clock, ArrowRight, Calendar } from 'lucide-react';
 import { events } from '@/data/courses';
 import { useToast } from '@/store/toast';
-import SectionHeading from '@/components/ui/SectionHeading';
 
 export default function Events() {
   const push = useToast((s) => s.push);

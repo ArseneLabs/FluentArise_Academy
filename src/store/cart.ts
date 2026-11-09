@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Course } from '@/types';
 
-interface CartItem extends Course {}
+type CartItem = Course;
 
 interface CartState {
   items: CartItem[];

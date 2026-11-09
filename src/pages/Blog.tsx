@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Eye, MessageCircle, Clock, ArrowRight, Calendar } from 'lucide-react';
 import { blogPosts } from '@/data/courses';
-import SectionHeading from '@/components/ui/SectionHeading';
 
 export default function Blog() {
   const [query, setQuery] = useState('');

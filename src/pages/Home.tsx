@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, PlayCircle, Sparkles, GraduationCap, Users, Award, TrendingUp } from 'lucide-react';
+import { ArrowRight, BookOpen, PlayCircle, Sparkles, GraduationCap, Users, Award } from 'lucide-react';
 import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { courses, testimonials, partnerLogos, pricingPlans } from '@/data/courses';
 import { formatRwf } from '@/data/courses';

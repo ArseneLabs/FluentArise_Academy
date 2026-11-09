@@ -1,23 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { X, ShoppingCart, Trash2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/store/cart';
-import { useToast } from '@/store/toast';
 import { formatRwf } from '@/data/courses';
 
 export default function CartDrawer() {
+  const navigate = useNavigate();
   const isOpen = useCart((s) => s.isOpen);
   const closeCart = useCart((s) => s.closeCart);
   const items = useCart((s) => s.items);
   const remove = useCart((s) => s.remove);
   const total = useCart((s) => s.total());
-  const push = useToast((s) => s.push);
 
   if (!isOpen) return null;
 
   const checkout = () => {
     if (items.length === 0) return;
-    push('Checkout is a demo — your order has been simulated!', 'info');
     closeCart();
+    navigate('/checkout');
   };
 
   return (
@@ -104,9 +103,9 @@ export default function CartDrawer() {
             >
               Checkout <ArrowRight className="h-4 w-4" />
             </button>
-            <p className="flex items-center justify-center gap-1.5 text-xs text-slate-400">
-              <ShieldCheck className="h-3.5 w-3.5" /> Secure, simulated checkout for demo purposes
-            </p>
+            <Link to="/checkout" onClick={closeCart} className="flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-brand-600 transition">
+              <ShieldCheck className="h-3.5 w-3.5" /> Secure checkout with Bank & MoMo payment
+            </Link>
           </div>
         )}
       </div>
