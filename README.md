@@ -1,4 +1,4 @@
-﻿# FluentaRise Academy
+# FluentaRise Academy
 
 A full-stack, modern course marketplace and learning academy platform built with **React**, **TypeScript**, **Tailwind CSS**, and **Supabase PostgreSQL**. Optimized for zero-configuration deployment on **Vercel's Free Hobby Plan**.
 
