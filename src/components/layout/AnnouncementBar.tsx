@@ -6,13 +6,13 @@ export default function AnnouncementBar() {
     <div className="gradient-brand text-white text-sm">
       <div className="container-page flex h-10 items-center justify-between gap-4">
         <div className="hidden items-center gap-5 sm:flex">
-          <a href="tel:+0002356222" className="flex items-center gap-1.5 text-white/85 hover:text-white transition-colors">
+          <a href="tel:+250795041000" className="flex items-center gap-1.5 text-white/85 hover:text-white transition-colors">
             <Phone className="h-3.5 w-3.5" />
-            <span>+000-2356-222</span>
+            <span>0795041000</span>
           </a>
-          <a href="mailto:contact@fluentarise.com" className="flex items-center gap-1.5 text-white/85 hover:text-white transition-colors">
+          <a href="mailto:kjmicheline@gmail.com" className="flex items-center gap-1.5 text-white/85 hover:text-white transition-colors">
             <Mail className="h-3.5 w-3.5" />
-            <span>contact@fluentarise.com</span>
+            <span>kjmicheline@gmail.com</span>
           </a>
         </div>
         <div className="flex items-center gap-4 sm:gap-5 ml-auto sm:ml-0">

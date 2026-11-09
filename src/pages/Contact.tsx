@@ -18,9 +18,9 @@ interface Errors {
 }
 
 const contactCards = [
-  { icon: MapPin, title: 'Visit Us', lines: ['KN 5 Avenue, KG 9 Road', 'Kigali, Rwanda'], color: 'brand' },
-  { icon: Phone, title: 'Call Us', lines: ['+000-2356-222', '+250 788 000 000'], color: 'accent' },
-  { icon: Mail, title: 'Email Us', lines: ['contact@fluentarise.com', 'support@fluentarise.com'], color: 'brand' },
+  { icon: MapPin, title: 'Visit Us', lines: ['Opposite MIC Building, KN 2 Ave', 'Kigali, Rwanda'], color: 'brand' },
+  { icon: Phone, title: 'Call Us', lines: ['0795041000', '+250 795 041 000'], color: 'accent' },
+  { icon: Mail, title: 'Email Us', lines: ['kjmicheline@gmail.com'], color: 'brand' },
   { icon: Clock, title: 'Office Hours', lines: ['Mon – Fri: 8AM – 6PM', 'Sat: 9AM – 1PM'], color: 'accent' },
 ];
 
@@ -163,7 +163,7 @@ export default function Contact() {
               />
               <div className="p-5">
                 <h3 className="text-base font-bold text-brand-900">FluentaRise Campus</h3>
-                <p className="mt-1 flex items-center gap-2 text-sm text-slate-500"><MapPin className="h-4 w-4 text-accent-500" /> KN 5 Avenue, Kigali, Rwanda</p>
+                <p className="mt-1 flex items-center gap-2 text-sm text-slate-500"><MapPin className="h-4 w-4 text-accent-500" /> Opposite MIC Building, KN 2 Ave, Kigali, Rwanda</p>
               </div>
             </div>
             <div className="rounded-2xl gradient-brand p-6 text-white shadow-brand">

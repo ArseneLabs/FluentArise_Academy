@@ -70,14 +70,14 @@ export default function Footer() {
               Elevating communication and tech skills across East Africa. Live online English classes, flexible tech courses, and career-ready training.
             </p>
             <div className="mt-5 space-y-2 text-sm text-white/75">
-              <a href="tel:+0002356222" className="flex items-center gap-2 hover:text-white">
-                <Phone className="h-4 w-4 text-accent-400" /> +000-2356-222
+              <a href="tel:+250795041000" className="flex items-center gap-2 hover:text-white">
+                <Phone className="h-4 w-4 text-accent-400" /> 0795041000
               </a>
-              <a href="mailto:contact@fluentarise.com" className="flex items-center gap-2 hover:text-white">
-                <Mail className="h-4 w-4 text-accent-400" /> contact@fluentarise.com
+              <a href="mailto:kjmicheline@gmail.com" className="flex items-center gap-2 hover:text-white">
+                <Mail className="h-4 w-4 text-accent-400" /> kjmicheline@gmail.com
               </a>
               <p className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-accent-400" /> KN 5 Ave, Kigali, Rwanda
+                <MapPin className="h-4 w-4 text-accent-400" /> Kigali, Rwanda, Opposite MIC Building, KN 2 Ave
               </p>
             </div>
           </div>

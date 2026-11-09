@@ -28,16 +28,16 @@ interface Errors {
 
 const BANK_DETAILS = {
   bankName: 'Bank of Kigali (BK)',
-  accountName: 'FluentaRise Ltd',
-  accountNumber: '00045 6789 0123',
-  branch: 'KN 5 Avenue Branch, Kigali',
+  accountName: 'Dufitimana Arsene Johnkelly',
+  accountNumber: '100158888526',
+  branch: 'KN 2 Ave Branch, Kigali',
   swift: 'BKINRWRP',
 };
 
 const MOMO_DETAILS = {
   provider: 'MTN MobileMoney / Airtel Money',
-  number: '+250 788 222 333',
-  accountName: 'FluentaRise Ltd',
+  number: '0795041000',
+  accountName: 'KWIZERA Josee Micheline',
 };
 
 export default function Checkout() {
@@ -358,7 +358,7 @@ function DetailsStep({
                 type="email"
                 value={customer.email}
                 onChange={(e) => update('email', e.target.value)}
-                placeholder="jane@example.com"
+                placeholder="kjmicheline@gmail.com"
                 className={`w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm outline-none transition focus:bg-white focus:ring-2 ${
                   errors.email ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-brand-400 focus:ring-brand-100'
                 }`}
@@ -370,7 +370,7 @@ function DetailsStep({
               <input
                 value={customer.phone}
                 onChange={(e) => update('phone', e.target.value)}
-                placeholder="+250 788 000 000"
+                placeholder="0795041000"
                 className={`w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm outline-none transition focus:bg-white focus:ring-2 ${
                   errors.phone ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-brand-400 focus:ring-brand-100'
                 }`}
