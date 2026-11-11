@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
-import { X, LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { X, LogIn, UserPlus, ArrowRight, Shield, GraduationCap, UserRound, LogOut } from 'lucide-react';
+import { useAuth } from '@/auth/AuthProvider';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -11,7 +12,22 @@ const navLinks = [
 ];
 
 export default function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { user, signOut } = useAuth();
   if (!open) return null;
+
+  const roleLink =
+    user?.role === 'super_admin'
+      ? '/admin'
+      : user?.role === 'instructor'
+      ? '/instructor'
+      : '/student';
+
+  const roleLabel =
+    user?.role === 'super_admin'
+      ? 'Super Admin Console'
+      : user?.role === 'instructor'
+      ? 'Instructor Portal'
+      : 'Student Learning Hub';
 
   return (
     <div className="fixed inset-0 z-[60] lg:hidden">
@@ -48,12 +64,42 @@ export default function MobileMenu({ open, onClose }: { open: boolean; onClose: 
         </nav>
 
         <div className="border-t border-slate-100 p-4 space-y-2">
-          <Link to="/contact" onClick={onClose} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
-            <LogIn className="h-4 w-4" /> Login
-          </Link>
-          <Link to="/contact" onClick={onClose} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
-            <UserPlus className="h-4 w-4" /> Register
-          </Link>
+          {user ? (
+            <>
+              <Link
+                to={roleLink}
+                onClick={onClose}
+                className="flex items-center justify-center gap-2 rounded-xl bg-brand-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
+              >
+                {user.role === 'super_admin' ? (
+                  <Shield size={16} />
+                ) : user.role === 'instructor' ? (
+                  <GraduationCap size={16} />
+                ) : (
+                  <UserRound size={16} />
+                )}
+                {roleLabel}
+              </Link>
+              <button
+                onClick={() => {
+                  void signOut();
+                  onClose();
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-red-50 hover:text-red-600 transition"
+              >
+                <LogOut size={16} /> Sign out ({user.name.split(' ')[0]})
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" onClick={onClose} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+                <LogIn className="h-4 w-4" /> Login
+              </Link>
+              <Link to="/login?mode=signup" onClick={onClose} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
+                <UserPlus className="h-4 w-4" /> Register
+              </Link>
+            </>
+          )}
           <Link to="/courses" onClick={onClose} className="flex items-center justify-center gap-2 rounded-xl gradient-accent px-4 py-2.5 text-sm font-semibold text-white shadow-accent">
             Apply Now <ArrowRight className="h-4 w-4" />
           </Link>

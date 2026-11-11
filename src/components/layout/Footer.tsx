@@ -28,6 +28,7 @@ const columns = [
       { label: 'FAQs', to: '/about' },
       { label: 'Become an Instructor', to: '/about' },
       { label: 'Career Fair', to: '/events' },
+      { label: 'Admin Portal', to: '/login' },
     ],
   },
 ];

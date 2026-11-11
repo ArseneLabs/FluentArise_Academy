@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, Menu, X } from 'lucide-react';
+import { Search, ShoppingCart, Menu, X, Shield, GraduationCap, UserRound } from 'lucide-react';
 import { useCart } from '@/store/cart';
+import { useAuth } from '@/auth/AuthProvider';
 import MobileMenu from './MobileMenu';
 
 const navLinks = [
@@ -21,6 +22,7 @@ export default function Navbar() {
   const count = useCart((s) => s.items.length);
   const openCart = useCart((s) => s.openCart);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -37,6 +39,20 @@ export default function Navbar() {
     }
   };
 
+  const portalRoute =
+    user?.role === 'super_admin'
+      ? '/admin'
+      : user?.role === 'instructor'
+      ? '/instructor'
+      : '/student';
+
+  const portalText =
+    user?.role === 'super_admin'
+      ? 'Admin Console'
+      : user?.role === 'instructor'
+      ? 'Instructor Portal'
+      : 'My Learning';
+
   return (
     <>
       <header
@@ -47,7 +63,11 @@ export default function Navbar() {
         <div className="container-page flex h-16 items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <img src="/Gemini_Generated_Image_77j82y77j82y77j8.jpg" alt="FluentaRise logo" className="h-9 w-9 rounded-lg object-cover" />
+            <img
+              src="/Gemini_Generated_Image_77j82y77j82y77j8.jpg"
+              alt="FluentaRise logo"
+              className="h-9 w-9 rounded-lg object-cover"
+            />
             <span className="text-lg font-extrabold tracking-tight text-brand-900">
               Fluenta<span className="text-accent-500">Rise</span>
             </span>
@@ -62,7 +82,9 @@ export default function Navbar() {
                 end={l.to === '/'}
                 className={({ isActive }) =>
                   `rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${
-                    isActive ? 'text-brand-800 bg-brand-50' : 'text-slate-600 hover:text-brand-800 hover:bg-brand-50/60'
+                    isActive
+                      ? 'text-brand-800 bg-brand-50'
+                      : 'text-slate-600 hover:text-brand-800 hover:bg-brand-50/60'
                   }`
                 }
               >
@@ -102,12 +124,28 @@ export default function Navbar() {
               <Menu className="h-5 w-5" />
             </button>
 
-            <Link
-              to="/courses"
-              className="hidden rounded-full gradient-accent px-5 py-2 text-sm font-semibold text-white shadow-accent hover:opacity-95 transition-opacity sm:inline-flex"
-            >
-              Get Started
-            </Link>
+            {user ? (
+              <Link
+                to={portalRoute}
+                className="hidden rounded-full bg-brand-900 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-950 transition sm:inline-flex items-center gap-1.5"
+              >
+                {user.role === 'super_admin' ? (
+                  <Shield size={14} className="text-accent-400" />
+                ) : user.role === 'instructor' ? (
+                  <GraduationCap size={14} className="text-emerald-400" />
+                ) : (
+                  <UserRound size={14} className="text-sky-300" />
+                )}
+                <span>{portalText}</span>
+              </Link>
+            ) : (
+              <Link
+                to="/courses"
+                className="hidden rounded-full gradient-accent px-5 py-2 text-sm font-semibold text-white shadow-accent hover:opacity-95 transition-opacity sm:inline-flex"
+              >
+                Get Started
+              </Link>
+            )}
           </div>
         </div>
 
@@ -126,7 +164,10 @@ export default function Navbar() {
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100 transition"
                   />
                 </div>
-                <button type="submit" className="rounded-xl gradient-brand px-5 py-2.5 text-sm font-semibold text-white hover:opacity-95 transition">
+                <button
+                  type="submit"
+                  className="rounded-xl gradient-brand px-5 py-2.5 text-sm font-semibold text-white hover:opacity-95 transition"
+                >
                   Search
                 </button>
               </form>
