@@ -9,6 +9,7 @@ import { useToast } from '@/store/toast';
 import { formatRwf } from '@/data/courses';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { generateOrderNumber, type OrderRecord } from '@/lib/orders';
+import { useAdminStore } from '@/admin/store/adminStore';
 
 type Step = 'review' | 'details' | 'payment' | 'success';
 type PaymentMethod = 'bank' | 'momo';
@@ -144,6 +145,19 @@ export default function Checkout() {
         };
         setOrder(fallback);
       }
+
+      // Sync real checkout order to admin store
+      useAdminStore.getState().addOrder({
+        id: `ord_${Date.now()}`,
+        reference: payload.order_number,
+        studentName: payload.customer_name,
+        studentEmail: payload.customer_email,
+        courseTitle: orderItems.map((i) => i.title).join(', '),
+        amount: payload.total_amount,
+        method: payload.payment_method === 'momo' ? 'MTN Mobile Money' : 'Bank Transfer',
+        status: 'paid',
+        date: new Date().toISOString(),
+      });
 
       clear();
       setStep('success');

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Save } from 'lucide-react';
 import Modal from './ui/Modal';
 import Toggle from './ui/Toggle';
+import MediaUploader from './ui/MediaUploader';
 import { uid } from '../store/adminStore';
 import type { Lecture } from '../types';
 
@@ -39,11 +40,13 @@ export default function LectureModal({
       open={open}
       onClose={onClose}
       title={lecture ? 'Edit Lecture' : 'Add Video / Lecture'}
-      subtitle="Recorded lesson with optional notes and free preview"
+      subtitle="Upload a video/audio lesson or paste an embed link with optional notes and preview"
       size="lg"
       footer={
         <>
-          <button className="btn-outline" onClick={onClose}>Cancel</button>
+          <button className="btn-outline" onClick={onClose}>
+            Cancel
+          </button>
           <button className="btn-primary" onClick={save} disabled={!title}>
             <Save size={16} /> Save Lecture
           </button>
@@ -52,33 +55,57 @@ export default function LectureModal({
     >
       <div className="space-y-4">
         <div>
-          <label className="label">Lecture Title</label>
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Classes & Objects Explained" />
+          <label className="label">Lecture Title *</label>
+          <input
+            className="input font-semibold"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Classes & Objects Explained"
+          />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">Duration (minutes)</label>
-            <input type="number" className="input" value={durationMin} onChange={(e) => setDurationMin(+e.target.value)} min={1} />
+            <label className="label">Estimated Duration (minutes)</label>
+            <input
+              type="number"
+              className="input"
+              value={durationMin}
+              onChange={(e) => setDurationMin(+e.target.value)}
+              min={1}
+            />
           </div>
+
           <div>
             <label className="label">Free Preview</label>
             <div className="flex h-[42px] items-center">
-              <Toggle label="Available without enrolment" checked={freePreview} onChange={setFreePreview} />
+              <Toggle
+                label="Available without enrolment"
+                checked={freePreview}
+                onChange={setFreePreview}
+              />
             </div>
           </div>
         </div>
+
+        <MediaUploader
+          type="video"
+          label="Lecture Video File or Embed URL"
+          helperText="Upload video file (MP4, WebM, up to 50 MB) from computer or paste a YouTube / Vimeo embed link."
+          value={videoUrl}
+          onChange={(url) => setVideoUrl(url)}
+          folder="videos"
+          placeholder="https://youtube.com/embed/… or direct video URL"
+        />
+
         <div>
-          <label className="label">Video Embed / Storage URL</label>
-          <input className="input font-mono text-xs" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/embed/… or storage URL" />
-          {videoUrl && (
-            <div className="mt-2 aspect-video overflow-hidden rounded-xl bg-ink-900">
-              <iframe src={videoUrl} className="h-full w-full" title="Preview" allowFullScreen />
-            </div>
-          )}
-        </div>
-        <div>
-          <label className="label">Lecture Notes (optional)</label>
-          <textarea className="input min-h-[80px]" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Summary, slide links, or extra reading…" />
+          <label className="label">Lecture Notes & Transcript (Optional)</label>
+          <textarea
+            className="input min-h-[90px]"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Summary, key takeaways, slide links, or exercise instructions…"
+          />
         </div>
       </div>
     </Modal>

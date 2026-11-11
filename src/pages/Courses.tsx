@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import CourseCard from '@/components/ui/CourseCard';
-import { courses } from '@/data/courses';
+import { courses, getLiveCourses } from '@/data/courses';
 import type { CourseCategory } from '@/types';
 import SectionHeading from '@/components/ui/SectionHeading';
 
@@ -44,13 +44,19 @@ export default function Courses() {
   }, [debounced, category, setSearchParams]);
 
   const filtered = useMemo(() => {
-    let list = courses.filter((c) => {
+    const live = getLiveCourses();
+    const map = new Map<string, (typeof courses)[0]>();
+    for (const c of courses) map.set(c.id, c);
+    for (const c of live) map.set(c.id, c);
+    const combined = Array.from(map.values());
+
+    let list = combined.filter((c) => {
       const matchCat = category === 'All' || c.category === category;
       const q = debounced.toLowerCase();
       const matchQuery =
         !q ||
         c.title.toLowerCase().includes(q) ||
-        c.shortDescription.toLowerCase().includes(q) ||
+        (c.shortDescription && c.shortDescription.toLowerCase().includes(q)) ||
         c.category.toLowerCase().includes(q);
       return matchCat && matchQuery;
     });
@@ -142,16 +148,31 @@ export default function Courses() {
 
           {/* Grid */}
           {filtered.length === 0 ? (
-            <div className="mt-10 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-20 text-center">
+            <div className="mt-10 flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white py-20 px-6 text-center">
               <Search className="h-10 w-10 text-slate-300" />
-              <p className="mt-4 text-base font-semibold text-slate-700">No courses found</p>
-              <p className="mt-1 text-sm text-slate-500">Try a different search term or category.</p>
-              <button
-                onClick={() => { setQuery(''); setCategory('All'); }}
-                className="mt-5 rounded-full gradient-brand px-5 py-2.5 text-sm font-semibold text-white"
-              >
-                Clear filters
-              </button>
+              <p className="mt-4 text-base font-bold text-slate-800">
+                {courses.length === 0 ? 'No courses currently published' : 'No courses found'}
+              </p>
+              <p className="mt-1 text-sm text-slate-500 max-w-sm">
+                {courses.length === 0
+                  ? 'Our upcoming cohort terms and curriculum modules are being prepared. Contact our team to join the priority waitlist.'
+                  : 'Try a different search term or select another category.'}
+              </p>
+              {courses.length === 0 ? (
+                <a
+                  href="/contact"
+                  className="mt-5 rounded-full gradient-accent px-6 py-2.5 text-sm font-bold text-white shadow-accent"
+                >
+                  Contact Admissions
+                </a>
+              ) : (
+                <button
+                  onClick={() => { setQuery(''); setCategory('All'); }}
+                  className="mt-5 rounded-full gradient-brand px-5 py-2.5 text-sm font-semibold text-white"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

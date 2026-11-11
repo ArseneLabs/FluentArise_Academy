@@ -5,34 +5,27 @@ import {
   Users,
   BookOpen,
   FileCheck2,
-  ArrowUpRight,
-  ArrowDownRight,
   TrendingUp,
-  Plus,
   ClipboardList,
   ChevronRight,
+  PlusCircle,
 } from 'lucide-react';
 import { useAdminStore } from '../store/adminStore';
 import { PageHeader } from '../components/AdminLayout';
-import Badge, { toneForSubmissionStatus } from '../components/ui/Badge';
-import { formatCompactRwf, formatRwf, relativeDate } from '../lib/format';
+import { formatCompactRwf } from '../lib/format';
 
 function KpiCard({
   label,
   value,
-  delta,
-  deltaTone,
   icon,
   accent,
-  alert,
+  hint,
 }: {
   label: string;
   value: string;
-  delta?: string;
-  deltaTone?: 'up' | 'down';
   icon: React.ReactNode;
   accent: string;
-  alert?: string;
+  hint?: string;
 }) {
   return (
     <div className="card relative overflow-hidden p-5 transition hover:shadow-card-hover">
@@ -41,21 +34,9 @@ function KpiCard({
         <div className={`grid h-11 w-11 place-items-center rounded-xl ${accent} bg-opacity-10`}>
           {icon}
         </div>
-        {delta && (
-          <span
-            className={`chip ${
-              deltaTone === 'up'
-                ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
-                : 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400'
-            }`}
-          >
-            {deltaTone === 'up' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-            {delta}
-          </span>
-        )}
-        {alert && (
-          <span className="chip bg-coral-50 text-coral-700 dark:bg-coral-500/15 dark:text-coral-300">
-            {alert}
+        {hint && (
+          <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+            {hint}
           </span>
         )}
       </div>
@@ -77,39 +58,25 @@ export default function DashboardOverview() {
     return { revenue, activeStudents, published, drafts, pending };
   }, [courses, submissions, orders]);
 
-  // Build a 7-month trend from mock revenue + enrollment
-  const trend = useMemo(() => {
-    const months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
-    const rev = [2.1, 3.4, 4.8, 6.2, 8.1, 10.4, 13.8];
-    const enr = [40, 68, 95, 120, 150, 188, 210];
-    const maxRev = Math.max(...rev);
-    const maxEnr = Math.max(...enr);
-    return months.map((m, i) => ({
-      m,
-      rev: rev[i],
-      enr: enr[i],
-      revPct: (rev[i] / maxRev) * 100,
-      enrPct: (enr[i] / maxEnr) * 100,
-    }));
-  }, []);
-
-  const pendingSubs = submissions.filter((s) => s.status === 'needs_grading' || s.status === 'submitted').slice(0, 5);
+  const pendingSubs = submissions
+    .filter((s) => s.status === 'needs_grading' || s.status === 'submitted')
+    .slice(0, 5);
   const recentOrders = orders.filter((o) => o.status === 'paid').slice(0, 5);
 
   return (
     <>
       <PageHeader
-        title="Overview"
-        subtitle="Academic performance and operational metrics at a glance"
+        title="Academy Overview"
+        subtitle="Platform metrics, active enrollments, and operational queue"
         actions={
-          <>
+          <div className="flex items-center gap-2">
             <Link to="/admin/courses" className="btn-outline">
               <BookOpen size={16} /> Manage Courses
             </Link>
             <Link to="/admin/submissions" className="btn-primary">
               <ClipboardList size={16} /> Review Submissions
             </Link>
-          </>
+          </div>
         }
       />
 
@@ -118,107 +85,105 @@ export default function DashboardOverview() {
         <KpiCard
           label="Total Revenue"
           value={formatCompactRwf(stats.revenue)}
-          delta="18.2%"
-          deltaTone="up"
-          icon={<Wallet size={20} className="text-coral-600" />}
-          accent="bg-coral-500"
+          hint="Gross Rwf"
+          icon={<Wallet size={20} className="text-emerald-600" />}
+          accent="bg-emerald-500"
         />
         <KpiCard
           label="Active Students"
           value={stats.activeStudents.toString()}
-          delta="12.5%"
-          deltaTone="up"
-          icon={<Users size={20} className="text-info-600" />}
-          accent="bg-info-500"
+          hint="Paid learners"
+          icon={<Users size={20} className="text-sky-600" />}
+          accent="bg-sky-500"
         />
         <KpiCard
-          label="Active Courses"
-          value={`${stats.published} / ${stats.drafts} drafts`}
-          delta="3 new"
-          deltaTone="up"
-          icon={<BookOpen size={20} className="text-success-600" />}
-          accent="bg-success-500"
+          label="Academy Courses"
+          value={`${stats.published} published / ${stats.drafts} drafts`}
+          hint="Catalog"
+          icon={<BookOpen size={20} className="text-purple-600" />}
+          accent="bg-purple-500"
         />
         <KpiCard
           label="Pending Submissions"
           value={stats.pending.toString()}
-          alert="to grade"
+          hint="To review"
           icon={<FileCheck2 size={20} className="text-amber-600" />}
           accent="bg-amber-500"
         />
       </div>
 
-      {/* Trend chart + quick info */}
+      {/* Top courses & Overview Grid */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="card p-5 lg:col-span-2">
-          <div className="flex items-center justify-between">
+        {/* Trend summary or empty state */}
+        <div className="card p-6 lg:col-span-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h2 className="font-display text-base font-bold text-slate-900 dark:text-white">
+              <h2 className="font-display text-base font-bold text-slate-900">
                 Enrollment & Revenue Trend
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Last 7 months</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-coral-500" /> Revenue (M Rwf)
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-info-500" /> Enrollments
-              </span>
+              <p className="text-xs text-slate-400">Live operational data</p>
             </div>
           </div>
 
-          <div className="mt-6 flex h-56 items-end gap-3">
-            {trend.map((t) => (
-              <div key={t.m} className="group flex flex-1 flex-col items-center gap-2">
-                <div className="relative flex h-44 w-full items-end justify-center gap-1">
-                  <div
-                    className="w-1/2 rounded-t-md bg-coral-500/80 transition-all group-hover:bg-coral-500"
-                    style={{ height: `${t.revPct}%` }}
-                    title={`${t.rev}M Rwf`}
-                  >
-                    <span className="absolute -top-5 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded bg-ink-900 px-2 py-0.5 text-[10px] font-semibold text-white group-hover:block">
-                      {t.rev}M
-                    </span>
-                  </div>
-                  <div
-                    className="w-1/2 rounded-t-md bg-info-500/70 transition-all group-hover:bg-info-500"
-                    style={{ height: `${t.enrPct}%` }}
-                    title={`${t.enr} enrollments`}
-                  />
-                </div>
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{t.m}</span>
-              </div>
-            ))}
-          </div>
+          {orders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
+              <TrendingUp size={36} className="text-slate-300 mb-2" />
+              <p className="text-sm font-semibold text-slate-700">No enrollment transactions yet</p>
+              <p className="text-xs text-slate-500 mt-1">
+                When students purchase courses, monthly revenue and enrollment charts will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="py-6 space-y-2">
+              <p className="text-sm font-semibold text-slate-800">
+                {orders.length} total orders recorded ({formatCompactRwf(stats.revenue)})
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Top courses */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-base font-bold text-slate-900 dark:text-white">Top Courses</h2>
-            <TrendingUp size={18} className="text-coral-500" />
+        <div className="card p-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 className="font-display text-base font-bold text-slate-900">Top Courses</h2>
+            <Link to="/admin/courses" className="text-xs font-semibold text-sky-600 hover:underline">
+              View all
+            </Link>
           </div>
-          <div className="mt-4 space-y-3">
-            {[...courses]
-              .filter((c) => c.published)
-              .sort((a, b) => b.revenue - a.revenue)
-              .slice(0, 4)
-              .map((c, i) => (
-                <div key={c.id} className="flex items-center gap-3">
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-slate-100 text-xs font-bold text-slate-500 dark:bg-ink-700 dark:text-slate-300">
-                    {i + 1}
-                  </span>
-                  <img src={c.thumbnail} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {c.title}
-                    </p>
-                    <p className="text-xs text-slate-400">{c.studentsCount} students</p>
-                  </div>
-                  <span className="text-xs font-bold text-coral-600">{formatCompactRwf(c.revenue)}</span>
-                </div>
-              ))}
+          <div className="mt-4">
+            {courses.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                <p>No courses created yet.</p>
+                <Link
+                  to="/admin/courses"
+                  className="mt-3 inline-flex items-center gap-1.5 font-bold text-sky-600 hover:underline"
+                >
+                  <PlusCircle size={14} /> Create your first course
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {[...courses]
+                  .filter((c) => c.published)
+                  .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+                  .slice(0, 4)
+                  .map((c, i) => (
+                    <div key={c.id} className="flex items-center gap-3">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-slate-100 text-xs font-bold text-slate-500">
+                        {i + 1}
+                      </span>
+                      <img src={c.thumbnail} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-800">{c.title}</p>
+                        <p className="text-xs text-slate-400">{c.studentsCount || 0} students</p>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-600">
+                        {formatCompactRwf(c.revenue || 0)}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -227,95 +192,76 @@ export default function DashboardOverview() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent enrollments */}
         <div className="card overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-ink-700">
-            <h2 className="font-display text-base font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <h2 className="font-display text-base font-bold text-slate-900">
               Recent Enrollments
             </h2>
             <Link
               to="/admin/enrollments"
-              className="flex items-center gap-1 text-xs font-semibold text-coral-600 hover:text-coral-700"
+              className="flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700"
             >
               View all <ChevronRight size={14} />
             </Link>
           </div>
-          <div className="divide-y divide-slate-50 dark:divide-ink-700/60">
-            {recentOrders.map((o) => (
-              <div key={o.id} className="flex items-center gap-3 px-5 py-3 table-row-hover">
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-coral-50 text-xs font-bold text-coral-700 dark:bg-coral-500/15 dark:text-coral-300">
-                  {o.studentName.split(' ').map((n) => n[0]).join('')}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    {o.studentName}
-                  </p>
-                  <p className="truncate text-xs text-slate-400">{o.courseTitle}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{formatRwf(o.amount)}</p>
-                  <p className="text-xs text-slate-400">{o.method}</p>
-                </div>
+          <div>
+            {recentOrders.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400">
+                No orders or enrollments recorded yet.
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Pending submissions */}
-        <div className="card overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-ink-700">
-            <h2 className="font-display text-base font-bold text-slate-900 dark:text-white">
-              Pending Submissions
-            </h2>
-            <Link
-              to="/admin/submissions"
-              className="flex items-center gap-1 text-xs font-semibold text-coral-600 hover:text-coral-700"
-            >
-              Grade now <ChevronRight size={14} />
-            </Link>
-          </div>
-          <div className="divide-y divide-slate-50 dark:divide-ink-700/60">
-            {pendingSubs.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 px-5 py-3 table-row-hover">
-                <img src={s.studentAvatar} alt="" className="h-9 w-9 rounded-full object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    {s.studentName}
-                  </p>
-                  <p className="truncate text-xs text-slate-400">{s.taskTitle}</p>
-                </div>
-                <div className="text-right">
-                  <Badge tone={toneForSubmissionStatus(s.status)} dot>
-                    {s.status.replace('_', ' ')}
-                  </Badge>
-                  <p className="mt-1 text-xs text-slate-400">{relativeDate(s.submittedDate)}</p>
-                </div>
+            ) : (
+              <div className="divide-y divide-slate-50">
+                {recentOrders.map((o) => (
+                  <div key={o.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-800">{o.studentName}</p>
+                      <p className="text-xs text-slate-400">{o.courseTitle}</p>
+                    </div>
+                    <span className="text-xs font-bold text-slate-900">{formatCompactRwf(o.amount)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-            {pendingSubs.length === 0 && (
-              <div className="px-5 py-10 text-center text-sm text-slate-400">All caught up!</div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Quick actions */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: 'New Course', to: '/admin/courses', icon: <Plus size={18} /> },
-          { label: 'Add Task', to: '/admin/assessments', icon: <ClipboardList size={18} /> },
-          { label: 'Grade Work', to: '/admin/submissions', icon: <FileCheck2 size={18} /> },
-          { label: 'Instructors', to: '/admin/instructors', icon: <Users size={18} /> },
-        ].map((a) => (
-          <Link
-            key={a.label}
-            to={a.to}
-            className="card flex items-center gap-3 p-4 transition hover:shadow-card-hover hover:ring-1 hover:ring-coral-500/30"
-          >
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-coral-50 text-coral-600 dark:bg-coral-500/15 dark:text-coral-400">
-              {a.icon}
-            </div>
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{a.label}</span>
-          </Link>
-        ))}
+        {/* Pending Submissions */}
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <h2 className="font-display text-base font-bold text-slate-900">
+              Submissions Needing Grading
+            </h2>
+            <Link
+              to="/admin/submissions"
+              className="flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-700"
+            >
+              View all <ChevronRight size={14} />
+            </Link>
+          </div>
+          <div>
+            {pendingSubs.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400">
+                All submissions have been reviewed! No pending tasks to grade.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-50">
+                {pendingSubs.map((s) => (
+                  <div key={s.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-800">{s.studentName}</p>
+                      <p className="text-xs text-slate-400">{s.taskTitle}</p>
+                    </div>
+                    <Link
+                      to="/admin/submissions"
+                      className="rounded-lg bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-700 hover:bg-sky-100 transition"
+                    >
+                      Grade
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

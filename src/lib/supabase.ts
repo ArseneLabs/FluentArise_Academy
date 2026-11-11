@@ -1,15 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || 'https://placeholder.supabase.co';
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || 'placeholder-anon-key';
+const rawUrl = (import.meta.env.VITE_SUPABASE_URL as string) || '';
+// Clean up any trailing /rest/v1 or /rest/v1/ that might be pasted from Supabase API docs
+export const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').trim() || 'https://placeholder.supabase.co';
+export const supabaseAnonKey =
+  ((import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '').trim() || 'placeholder-anon-key';
 
 export const isSupabaseConfigured = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+  rawUrl &&
+    supabaseAnonKey &&
+    !rawUrl.includes('placeholder.supabase.co') &&
+    !supabaseAnonKey.includes('placeholder-anon-key')
 );
 
 if (!isSupabaseConfigured) {
-  // Fallback to ensure the app never crashes at import time even if env is missing
-  console.warn('Supabase env vars are missing — checkout persistence will be disabled and demo auth will be used.');
+  console.warn('Supabase env vars are missing — local fallback storage will be used.');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

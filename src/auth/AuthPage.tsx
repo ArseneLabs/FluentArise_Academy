@@ -15,8 +15,7 @@ import {
   AlertTriangle,
   Clock,
 } from 'lucide-react';
-import { DEMO_PASSWORD, useAuth } from './AuthProvider';
-import type { UserRole } from './types';
+import { useAuth } from './AuthProvider';
 
 export default function AuthPage() {
   const { user, signIn, signUp } = useAuth();
@@ -28,8 +27,8 @@ export default function AuthPage() {
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin'
   );
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('admin@fluentarise.com');
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState<'student' | 'instructor'>('student');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -55,23 +54,6 @@ export default function AuthPage() {
     }
   }, [user, navigate, location]);
 
-  const handleRoleQuickFill = (targetRole: UserRole | 'pending') => {
-    setError('');
-    setIsPendingError(false);
-    setRegistrationSuccess(false);
-    setPassword(DEMO_PASSWORD);
-
-    if (targetRole === 'super_admin') {
-      setEmail('admin@fluentarise.com');
-    } else if (targetRole === 'instructor') {
-      setEmail('instructor@fluentarise.com');
-    } else if (targetRole === 'student') {
-      setEmail('student@fluentarise.com');
-    } else if (targetRole === 'pending') {
-      setEmail('pending@fluentarise.com');
-    }
-  };
-
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
@@ -84,7 +66,6 @@ export default function AuthPage() {
         setError(result.error);
         setIsPendingError(Boolean(result.isPending));
       } else if (result.user) {
-        // Redirection handled by useEffect or here
         if (result.user.role === 'super_admin') {
           navigate('/admin');
         } else if (result.user.role === 'instructor') {
@@ -100,8 +81,6 @@ export default function AuthPage() {
         setError(result.error);
       } else {
         setRegistrationSuccess(true);
-        // Pre-fill email in sign-in for when it's activated
-        setEmail(email);
       }
     }
     setBusy(false);
@@ -230,82 +209,11 @@ export default function AuthPage() {
                     >
                       Go to Sign In
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRoleQuickFill('super_admin')}
-                      className="rounded-xl border border-emerald-300 bg-white px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition"
-                    >
-                      Login as Super Admin to Approve
-                    </button>
                   </div>
                 </div>
               </div>
             </div>
           )}
-
-          {/* Quick Demo Selector for seamless testing */}
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Quick Demo Role Logins
-              </p>
-              <span className="text-[11px] font-semibold text-sky-600">Click to fill</span>
-            </div>
-            <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <button
-                type="button"
-                onClick={() => handleRoleQuickFill('super_admin')}
-                className={`flex flex-col items-center justify-center rounded-xl border p-2 text-center transition ${
-                  email === 'admin@fluentarise.com'
-                    ? 'border-sky-600 bg-sky-50 text-sky-900 ring-2 ring-sky-200'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <Shield size={16} className="text-sky-600" />
-                <span className="mt-1 text-xs font-bold">Super Admin</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleQuickFill('instructor')}
-                className={`flex flex-col items-center justify-center rounded-xl border p-2 text-center transition ${
-                  email === 'instructor@fluentarise.com'
-                    ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-200'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <GraduationCap size={16} className="text-emerald-600" />
-                <span className="mt-1 text-xs font-bold">Instructor</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleQuickFill('student')}
-                className={`flex flex-col items-center justify-center rounded-xl border p-2 text-center transition ${
-                  email === 'student@fluentarise.com'
-                    ? 'border-purple-600 bg-purple-50 text-purple-900 ring-2 ring-purple-200'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <UserRound size={16} className="text-purple-600" />
-                <span className="mt-1 text-xs font-bold">Student</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleQuickFill('pending')}
-                className={`flex flex-col items-center justify-center rounded-xl border p-2 text-center transition ${
-                  email === 'pending@fluentarise.com'
-                    ? 'border-amber-600 bg-amber-50 text-amber-900 ring-2 ring-amber-200'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-                title="Tests the blocked pending activation state"
-              >
-                <Clock size={16} className="text-amber-600" />
-                <span className="mt-1 text-xs font-bold">Pending Demo</span>
-              </button>
-            </div>
-          </div>
 
           {/* Mode Switcher */}
           <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
@@ -429,9 +337,6 @@ export default function AuthPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-semibold text-slate-700">Password</label>
-                {mode === 'signin' && (
-                  <span className="text-xs text-slate-400">Default demo: FluentaRise2026!</span>
-                )}
               </div>
               <div className="relative">
                 <LockKeyhole
@@ -478,17 +383,6 @@ export default function AuthPage() {
                       {isPendingError ? 'Account Pending Super Admin Activation' : 'Authentication Error'}
                     </p>
                     <p className="mt-1 text-xs leading-relaxed">{error}</p>
-                    {isPendingError && (
-                      <div className="mt-3 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleRoleQuickFill('super_admin')}
-                          className="rounded-lg bg-amber-800 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-900 transition"
-                        >
-                          Sign in as Super Admin to Activate
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

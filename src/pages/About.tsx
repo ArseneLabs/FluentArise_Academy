@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, Target, Eye, Heart, Rocket, Users, BookOpen, Award, ArrowRight, Sparkles } from 'lucide-react';
 import SectionHeading from '@/components/ui/SectionHeading';
-import AnimatedCounter from '@/components/ui/AnimatedCounter';
 import { faqs } from '@/data/courses';
 
 const possibilities = [
@@ -10,18 +9,13 @@ const possibilities = [
   { icon: Users, title: 'Expert Mentors', desc: 'Learn from industry professionals who have real experience and a passion for teaching.' },
   { icon: Award, title: 'Recognised Certificates', desc: 'Earn verifiable certificates that employers across East Africa trust and respect.' },
   { icon: BookOpen, title: 'Rich Resources', desc: 'Access downloadable materials, practice exercises and project templates for life.' },
-  { icon: Heart, title: 'Supportive Community', desc: 'Join thousands of learners who motivate, help and celebrate each other every day.' },
-  { icon: Sparkles, title: 'Career Coaching', desc: 'Get CV reviews, interview prep and access to our hiring partner network.' },
-];
-
-const stats = [
-  { label: 'Active Students', value: 4680, suffix: '+' },
-  { label: 'Expert Instructors', value: 45, suffix: '+' },
-  { label: 'Courses Available', value: 330, suffix: '+' },
-  { label: 'Graduate Success', value: 98, suffix: '%' },
+  { icon: Heart, title: 'Supportive Community', desc: 'Join ambitious learners who motivate, help and celebrate each other every day.' },
+  { icon: Sparkles, title: 'Career Guidance', desc: 'Get practical CV reviews, interview prep, and direct instructor feedback.' },
 ];
 
 export default function About() {
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+
   return (
     <>
       {/* Hero */}
@@ -50,7 +44,7 @@ export default function About() {
               courses that anyone in East Africa can access from a phone or laptop.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              We measure our success not by enrolments, but by outcomes — the jobs our graduates land, the exams they pass,
+              We measure our success not by inflated numbers, but by genuine outcomes — the skills our learners master, the exams they pass,
               and the conversations they now lead in English with total confidence.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -90,50 +84,33 @@ export default function About() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="gradient-brand py-14">
-        <div className="container-page grid grid-cols-2 gap-8 lg:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="text-center">
-              <p className="text-4xl font-extrabold text-white sm:text-5xl"><AnimatedCounter value={s.value} suffix={s.suffix} /></p>
-              <p className="mt-2 text-sm font-medium uppercase tracking-wider text-white/65">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FAQ */}
+      {/* FAQs */}
       <section className="bg-white py-16 lg:py-24">
-        <div className="container-page">
-          <SectionHeading eyebrow="FAQ" title="Frequently asked questions" subtitle="Everything you need to know before joining FluentaRise." />
-          <div className="mx-auto mt-10 max-w-3xl space-y-3">
-            {faqs.map((faq, i) => (
-              <FaqItem key={i} question={faq.question} answer={faq.answer} />
-            ))}
-          </div>
-          <div className="mt-10 text-center">
-            <Link to="/contact" className="inline-flex items-center gap-2 rounded-full gradient-accent px-6 py-3 text-sm font-bold text-white shadow-accent hover:opacity-95 transition">
-              Still have questions? Contact us <ArrowRight className="h-4 w-4" />
-            </Link>
+        <div className="container-page max-w-4xl">
+          <SectionHeading eyebrow="Frequently Asked Questions" title="Got questions? We have answers" subtitle="Everything you need to know about learning with FluentaRise." />
+          <div className="mt-12 space-y-4">
+            {faqs.map((faq, idx) => {
+              const isOpen = openFaq === idx;
+              return (
+                <div key={faq.question} className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/50 transition-colors">
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : idx)}
+                    className="flex w-full items-center justify-between p-5 text-left text-base font-bold text-brand-900 hover:text-brand-700"
+                  >
+                    <span>{faq.question}</span>
+                    <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isOpen && (
+                    <div className="border-t border-slate-100 bg-white p-5 text-sm leading-relaxed text-slate-600">
+                      {faq.answer}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
     </>
-  );
-}
-
-function FaqItem({ question, answer }: { question: string; answer: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="rounded-xl border border-slate-200 overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-slate-50"
-      >
-        <span className="text-sm font-bold text-brand-900">{question}</span>
-        <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600 animate-slide-down">{answer}</p>}
-    </div>
   );
 }

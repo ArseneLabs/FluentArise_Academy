@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, PlayCircle, Sparkles, GraduationCap, Users, Award } from 'lucide-react';
-import AnimatedCounter from '@/components/ui/AnimatedCounter';
-import { courses, testimonials, partnerLogos, pricingPlans } from '@/data/courses';
+import { ArrowRight, BookOpen, PlayCircle, Sparkles, GraduationCap, Users, Award, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { courses, testimonials, partnerLogos, pricingPlans, getLiveCourses } from '@/data/courses';
 import { formatRwf } from '@/data/courses';
 import CourseCard from '@/components/ui/CourseCard';
 import SectionHeading from '@/components/ui/SectionHeading';
@@ -28,26 +27,31 @@ const features = [
   },
 ];
 
-const metrics = [
-  { label: 'Active Students', value: 4680, suffix: '+' },
-  { label: 'Online Courses', value: 330, suffix: '+' },
-  { label: 'Satisfaction', value: 98, suffix: '%' },
-  { label: 'Graduates', value: 1200, suffix: '+' },
+const pillars = [
+  { icon: Users, label: 'Live Online Coaching', desc: 'Real-time mentorship & speaking practice' },
+  { icon: BookOpen, label: 'Practical Curriculum', desc: 'Hands-on projects and capstone tasks' },
+  { icon: ShieldCheck, label: 'Verified Certificates', desc: 'Official completion credentials' },
+  { icon: Award, label: 'Flexible Schedules', desc: 'Evening and weekend cohort classes' },
 ];
 
 export default function Home() {
-  const popularCourses = courses.filter((c) => c.popular).slice(0, 6);
+  const live = getLiveCourses();
+  const map = new Map<string, (typeof courses)[0]>();
+  for (const c of courses) map.set(c.id, c);
+  for (const c of live) map.set(c.id, c);
+  const allCourses = Array.from(map.values());
+  const popularCourses = allCourses.slice(0, 6);
 
   return (
     <>
       <Hero />
       <Features />
-      <MetricsBanner />
+      <PillarsBanner />
       <PopularCourses courses={popularCourses} />
       <StorySection />
       <PricingSection />
-      <TestimonialsSection />
-      <PartnersSection />
+      {testimonials.length > 0 && <TestimonialsSection />}
+      {partnerLogos.length > 0 && <PartnersSection />}
     </>
   );
 }
@@ -88,18 +92,6 @@ function Hero() {
               <PlayCircle className="h-5 w-5" /> View Courses
             </Link>
           </div>
-
-          <div className="mt-10 flex items-center gap-6">
-            <div className="flex -space-x-3">
-              {testimonials.map((t) => (
-                <img key={t.id} src={t.avatar} alt={t.name} className="h-10 w-10 rounded-full border-2 border-white/40 object-cover" />
-              ))}
-            </div>
-            <div>
-              <StarRating rating={5} size="md" />
-              <p className="mt-1 text-sm text-white/70">Loved by 4,680+ active students</p>
-            </div>
-          </div>
         </div>
 
         <div className="relative animate-fade-in lg:flex lg:justify-end">
@@ -117,8 +109,8 @@ function Hero() {
                   <GraduationCap className="h-6 w-6" />
                 </span>
                 <div>
-                  <p className="text-2xl font-extrabold text-brand-900">1,200+</p>
-                  <p className="text-xs text-slate-500">Graduates hired</p>
+                  <p className="text-base font-extrabold text-brand-900">FluentaRise Academy</p>
+                  <p className="text-xs text-slate-500">Live Mentorship & Certifications</p>
                 </div>
               </div>
             </div>
@@ -136,7 +128,7 @@ function Features() {
         <SectionHeading
           eyebrow="Why FluentaRise"
           title="Learning built around your goals"
-          subtitle="Three pillars that make FluentaRise the most trusted online learning platform in East Africa."
+          subtitle="Three pillars that make FluentaRise the trusted online learning platform in East Africa."
         />
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {features.map((f, i) => (
@@ -158,16 +150,17 @@ function Features() {
   );
 }
 
-function MetricsBanner() {
+function PillarsBanner() {
   return (
     <section className="gradient-brand py-14">
       <div className="container-page grid grid-cols-2 gap-8 lg:grid-cols-4">
-        {metrics.map((m) => (
-          <div key={m.label} className="text-center">
-            <p className="text-4xl font-extrabold text-white sm:text-5xl">
-              <AnimatedCounter value={m.value} suffix={m.suffix} />
-            </p>
-            <p className="mt-2 text-sm font-medium uppercase tracking-wider text-white/65">{m.label}</p>
+        {pillars.map((p) => (
+          <div key={p.label} className="text-center">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-accent-300">
+              <p.icon size={22} />
+            </span>
+            <p className="mt-3 font-bold text-white text-base">{p.label}</p>
+            <p className="mt-1 text-xs text-white/70">{p.desc}</p>
           </div>
         ))}
       </div>
@@ -182,9 +175,9 @@ function PopularCourses({ courses: list }: { courses: typeof courses }) {
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row sm:items-end">
           <SectionHeading
             center={false}
-            eyebrow="Most Popular"
-            title="Popular Courses"
-            subtitle="Hand-picked courses our students love most, across English, Java and web development."
+            eyebrow="Courses"
+            title="Academy Programs"
+            subtitle="Explore our comprehensive learning tracks across English Fluency and Software Development."
           />
           <Link
             to="/courses"
@@ -193,11 +186,38 @@ function PopularCourses({ courses: list }: { courses: typeof courses }) {
             View All <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((c) => (
-            <CourseCard key={c.id} course={c} />
-          ))}
-        </div>
+
+        {list.length === 0 ? (
+          <div className="mt-10 rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center">
+            <BookOpen size={44} className="mx-auto text-slate-300 mb-3" />
+            <h3 className="font-display text-lg font-bold text-slate-900">
+              New Cohort Schedules Coming Soon
+            </h3>
+            <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+              Our upcoming course terms and curriculum modules are currently being prepared. Apply today or reach out to secure your spot.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link
+                to="/contact"
+                className="rounded-full gradient-accent px-6 py-2.5 text-sm font-bold text-white shadow-accent hover:opacity-95 transition"
+              >
+                Contact Admissions
+              </Link>
+              <Link
+                to="/courses"
+                className="rounded-full border border-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                Browse Catalog
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {list.map((c) => (
+              <CourseCard key={c.id} course={c} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -214,10 +234,6 @@ function StorySection() {
             alt="FluentaRise community"
             className="relative w-full rounded-3xl object-cover shadow-card"
           />
-          <div className="absolute -bottom-6 -right-6 hidden rounded-2xl gradient-brand p-5 text-white shadow-brand md:block">
-            <p className="text-3xl font-extrabold">10+</p>
-            <p className="text-sm text-white/75">Years of teaching</p>
-          </div>
         </div>
 
         <div>
@@ -228,20 +244,18 @@ function StorySection() {
             subtitle="FluentaRise started with a simple belief: world-class communication and tech skills should be accessible to everyone, everywhere."
           />
           <p className="mt-4 text-sm leading-relaxed text-slate-500">
-            From a single English class in Kigali to a platform serving thousands of learners across the region, we have
-            stayed focused on one thing — outcomes. Our students do not just complete courses; they get hired, pass
-            exams, and lead conversations.
+            Based in Kigali, Rwanda, our platform connects learners with dedicated instructors focused on practical outcomes. Our students master clear spoken English, excel in international proficiency exams, and build production-ready software systems.
           </p>
           <ul className="mt-6 space-y-3">
             {[
-              'Live, mentor-led classes with real feedback',
-              'Project-based learning you can show employers',
-              'A hiring partner network across East Africa',
+              'Live, mentor-led classes with actionable feedback',
+              'Project-based learning you can showcase to employers',
+              'Fast-track preparation for IELTS and Duolingo certifications',
               'Flexible schedules that fit working professionals',
             ].map((point) => (
               <li key={point} className="flex items-start gap-3 text-sm text-slate-700">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                  <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clipRule="evenodd" /></svg>
+                  <CheckCircle2 size={14} />
                 </span>
                 {point}
               </li>
@@ -278,7 +292,7 @@ function PricingSection() {
             >
               {plan.highlighted && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full gradient-accent px-4 py-1 text-xs font-bold text-white shadow-accent">
-                  Most Popular
+                  Recommended
                 </span>
               )}
               <h3 className="text-lg font-bold text-brand-900">{plan.name}</h3>
@@ -291,7 +305,7 @@ function PricingSection() {
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-slate-700">
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clipRule="evenodd" /></svg>
+                      <CheckCircle2 size={14} />
                     </span>
                     {f}
                   </li>
@@ -320,10 +334,12 @@ function TestimonialsSection() {
   const count = testimonials.length;
 
   useEffect(() => {
+    if (count === 0) return;
     const id = setInterval(() => setIndex((i) => (i + 1) % count), 5000);
     return () => clearInterval(id);
   }, [count]);
 
+  if (count === 0) return null;
   const active = testimonials[index];
 
   return (
@@ -332,7 +348,7 @@ function TestimonialsSection() {
         <SectionHeading
           eyebrow="Testimonials"
           title="What our students say"
-          subtitle="Real stories from learners whose careers and confidence took off with FluentaRise."
+          subtitle="Real stories from learners who leveled up their skills with FluentaRise."
         />
         <div className="mx-auto mt-12 max-w-3xl">
           <div className="rounded-3xl gradient-brand p-8 text-center shadow-brand sm:p-12">
@@ -346,16 +362,6 @@ function TestimonialsSection() {
               </div>
             </div>
           </div>
-          <div className="mt-6 flex items-center justify-center gap-2">
-            {testimonials.map((t, i) => (
-              <button
-                key={t.id}
-                onClick={() => setIndex(i)}
-                className={`h-2 rounded-full transition-all ${i === index ? 'w-8 bg-brand-700' : 'w-2 bg-slate-300 hover:bg-slate-400'}`}
-                aria-label={`Go to testimonial ${i + 1}`}
-              />
-            ))}
-          </div>
         </div>
       </div>
     </section>
@@ -363,6 +369,8 @@ function TestimonialsSection() {
 }
 
 function PartnersSection() {
+  if (partnerLogos.length === 0) return null;
+
   return (
     <section className="bg-slate-50 py-14">
       <div className="container-page">

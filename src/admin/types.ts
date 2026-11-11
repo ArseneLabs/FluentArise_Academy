@@ -63,7 +63,7 @@ export interface Assignment {
   allowedFormats: string[];
   maxFileMb: number;
   dueDate: string;
-  referenceFiles: { name: string; size: string }[];
+  referenceFiles: { name: string; size: string; url?: string }[];
 }
 
 export type CurriculumItem = Lecture | Quiz | Assignment;
@@ -95,6 +95,8 @@ export interface Course {
   revenue: number;
   createdAt: string;
   curriculum: CurriculumSection[];
+  shortDescription?: string;
+  overview?: string;
 }
 
 export type SubmissionStatus =

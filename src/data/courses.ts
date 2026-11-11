@@ -6,589 +6,146 @@ import type {
   Testimonial,
   PricingPlan,
 } from '@/types';
+import { useAdminStore } from '@/admin/store/adminStore';
 
 export const formatRwf = (n: number): string =>
   new Intl.NumberFormat('en-RW', { maximumFractionDigits: 0 }).format(n) + ' Rwf';
 
-export const instructors: Instructor[] = [
-  {
-    id: 'i1',
-    name: 'Prince Dimpoz',
-    title: 'Senior English & Communication Coach',
-    photo: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
-    bio: 'Prince has taught English fluency and business communication for over a decade, helping thousands of East African professionals reach confident, native-level speech.',
-    rating: 4.9,
-    students: 3200,
-    coursesCount: 6,
-    expertise: ['English Fluency', 'Public Speaking', 'Business English'],
-  },
-  {
-    id: 'i2',
-    name: 'Aline Uwase',
-    title: 'Backend Engineer & Java Mentor',
-    photo: 'https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=400',
-    bio: 'Aline is a software engineer specialised in Java, Spring Boot and scalable backend systems. She mentors junior developers into production-ready engineers.',
-    rating: 4.8,
-    students: 1850,
-    coursesCount: 4,
-    expertise: ['Java & OOP', 'Spring Boot', 'System Design'],
-  },
-  {
-    id: 'i3',
-    name: 'David Mugisha',
-    title: 'Full-Stack Web Developer',
-    photo: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=400',
-    bio: 'David builds modern web applications with PHP, Laravel and TypeScript. He loves turning complete beginners into employable full-stack developers.',
-    rating: 4.7,
-    students: 2100,
-    coursesCount: 5,
-    expertise: ['PHP', 'Laravel', 'Web Development'],
-  },
-  {
-    id: 'i4',
-    name: 'Grace Iribagiza',
-    title: 'IELTS & Exam Prep Specialist',
-    photo: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400',
-    bio: 'Grace is a certified IELTS examiner with a 98% student pass rate. She coaches candidates to achieve band 7.5+ through structured, intensive preparation.',
-    rating: 5.0,
-    students: 980,
-    coursesCount: 3,
-    expertise: ['IELTS', 'TOEFL', 'Duolingo English Test'],
-  },
-];
+export const instructors: Instructor[] = [];
 
-const lectures = (count: number, base: string, previewIdx: number[] = [0]) =>
-  Array.from({ length: count }, (_, i) => ({
-    id: `${base}-l${i + 1}`,
-    title: `Lecture ${i + 1}: ${['Introduction', 'Core Concepts', 'Hands-on Practice', 'Deep Dive', 'Project Work', 'Q&A Session'][i % 6]}`,
-    duration: `${8 + ((i * 3) % 22)}:${(i * 7) % 60 < 10 ? '0' : ''}${(i * 7) % 60}`,
-    preview: previewIdx.includes(i),
-  }));
+export const courses: Course[] = [];
 
-export const courses: Course[] = [
-  {
-    id: 'c1',
-    slug: 'general-english',
-    title: 'General English — Complete Fluency Program',
-    category: 'English Fluency',
-    thumbnail: 'https://images.pexels.com/photos/267885/pexels-photo-267885.jpeg?auto=compress&cs=tinysrgb&w=800',
-    price: 100000,
-    oldPrice: 150000,
-    instructorId: 'i1',
-    duration: '12 weeks',
-    lessons: 48,
-    students: 1240,
-    rating: 4.9,
-    reviewsCount: 312,
-    level: 'Beginner',
-    language: 'English',
-    certificate: true,
-    assessment: true,
-    shortDescription: 'Build confident, fluent English for everyday life, work and travel — from grammar foundations to natural conversation.',
-    overview:
-      'General English is a complete fluency program designed to take you from hesitant speaker to confident communicator. Through live online classes, interactive exercises and real-world conversation practice, you will master grammar, expand your vocabulary, and develop the natural rhythm of native speech.',
-    takeaways: [
-      'Speak English confidently in everyday situations',
-      'Master essential grammar and sentence structures',
-      'Expand your vocabulary by 2,000+ words',
-      'Improve pronunciation and listening comprehension',
-      'Write clear emails, messages and short texts',
-    ],
-    requirements: [
-      'Basic reading knowledge of English (A1 level)',
-      'A device with internet and a microphone',
-      'Commitment to attend live classes twice weekly',
-    ],
-    outcomes: [
-      'Achieve B2 level fluency on the CEFR scale',
-      'Hold 15-minute unscripted conversations with ease',
-      'Understand native English media without subtitles',
-      'Receive a verifiable FluentaRise completion certificate',
-    ],
-    curriculum: [
-      { id: 'c1-s1', title: 'Foundations of English', lectures: lectures(6, 'c1-s1', [0, 1]) },
-      { id: 'c1-s2', title: 'Grammar in Context', lectures: lectures(5, 'c1-s2', [0]) },
-      { id: 'c1-s3', title: 'Conversation & Speaking', lectures: lectures(7, 'c1-s3', [0, 1]) },
-      { id: 'c1-s4', title: 'Listening & Pronunciation', lectures: lectures(5, 'c1-s4') },
-      { id: 'c1-s5', title: 'Writing for Real Life', lectures: lectures(4, 'c1-s5') },
-    ],
-    reviewList: [
-      { id: 'c1-r1', author: 'Mugenzi Eric', avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 5, date: '2026-10-12', comment: 'I can finally hold a full conversation in English at work. Prince is an amazing teacher!' },
-      { id: 'c1-r2', author: 'Claudine N.', avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 5, date: '2026-09-28', comment: 'The live classes made all the difference. Highly recommend to anyone serious about fluency.' },
-      { id: 'c1-r3', author: 'Patrick K.', avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 4, date: '2026-09-15', comment: 'Great course, wish there were more speaking practice sessions.' },
-    ],
-    featured: true,
-    popular: true,
-  },
-  {
-    id: 'c2',
-    slug: 'backend-java-oop',
-    title: 'Backend Using Java OOP — Foundations',
-    category: 'Java & OOP',
-    thumbnail: 'https://images.pexels.com/photos/1181271/pexels-photo-1181271.jpeg?auto=compress&cs=tinysrgb&w=800',
-    price: 30000,
-    instructorId: 'i2',
-    duration: '6 weeks',
-    lessons: 24,
-    students: 540,
-    rating: 4.7,
-    reviewsCount: 98,
-    level: 'Beginner',
-    language: 'English',
-    certificate: true,
-    assessment: true,
-    shortDescription: 'Learn object-oriented programming with Java from scratch — classes, inheritance, polymorphism and clean architecture.',
-    overview:
-      'This course introduces the four pillars of object-oriented programming using Java. You will write your first classes, model real-world systems, and build a small console project applying encapsulation, inheritance, polymorphism and abstraction.',
-    takeaways: [
-      'Understand classes, objects and references in Java',
-      'Apply the four pillars of OOP in real code',
-      'Write clean, testable Java applications',
-      'Use collections, exceptions and file I/O',
-    ],
-    requirements: [
-      'Basic computer literacy',
-      'JDK 17+ installed',
-      'No prior programming experience required',
-    ],
-    outcomes: [
-      'Build a complete OOP console project',
-      'Read and reason about Java source code',
-      'Be ready for the Java Backend Development track',
-    ],
-    curriculum: [
-      { id: 'c2-s1', title: 'Java Basics & Setup', lectures: lectures(5, 'c2-s1', [0]) },
-      { id: 'c2-s2', title: 'Classes & Objects', lectures: lectures(6, 'c2-s2', [0, 1]) },
-      { id: 'c2-s3', title: 'Inheritance & Polymorphism', lectures: lectures(7, 'c2-s3', [0]) },
-      { id: 'c2-s4', title: 'Collections & Error Handling', lectures: lectures(6, 'c2-s4') },
-    ],
-    reviewList: [
-      { id: 'c2-r1', author: 'Innocent M.', avatar: 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 5, date: '2026-10-02', comment: 'Aline explains OOP better than my university professors. Worth every franc.' },
-      { id: 'c2-r2', author: 'Sandra U.', avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 4, date: '2026-09-20', comment: 'Good pace and clear examples. The project at the end ties it all together.' },
-    ],
-    popular: true,
-  },
-  {
-    id: 'c3',
-    slug: 'java-backend-development',
-    title: 'Java Backend Development — Production Track',
-    category: 'Java & OOP',
-    thumbnail: 'https://images.pexels.com/photos/270404/pexels-photo-270404.jpeg?auto=compress&cs=tinysrgb&w=800',
-    price: 300000,
-    oldPrice: 380000,
-    instructorId: 'i2',
-    duration: '16 weeks',
-    lessons: 72,
-    students: 320,
-    rating: 4.8,
-    reviewsCount: 76,
-    level: 'Advanced',
-    language: 'English',
-    certificate: true,
-    assessment: true,
-    shortDescription: 'Build production-grade REST APIs with Spring Boot, PostgreSQL, security and deployment — end to end.',
-    overview:
-      'Go from OOP fundamentals to shipping production backend systems. This track covers Spring Boot, REST API design, JPA & PostgreSQL, authentication with JWT, testing, containerisation with Docker and deployment.',
-    takeaways: [
-      'Design and build REST APIs with Spring Boot',
-      'Persist data with JPA and PostgreSQL',
-      'Secure APIs with JWT and Spring Security',
-      'Write integration and unit tests',
-      'Containerise and deploy your application',
-    ],
-    requirements: [
-      'Solid Java OOP knowledge (or our Backend Using Java OOP course)',
-      'Basic SQL familiarity',
-      'A laptop with 8GB+ RAM',
-    ],
-    outcomes: [
-      'Ship a full production-grade backend project',
-      'Pass junior-to-mid backend interviews confidently',
-      'Understand the full request lifecycle end-to-end',
-    ],
-    curriculum: [
-      { id: 'c3-s1', title: 'Spring Boot Essentials', lectures: lectures(8, 'c3-s1', [0]) },
-      { id: 'c3-s2', title: 'REST API Design', lectures: lectures(7, 'c3-s2', [0, 1]) },
-      { id: 'c3-s3', title: 'JPA & PostgreSQL', lectures: lectures(9, 'c3-s3', [0]) },
-      { id: 'c3-s4', title: 'Security with JWT', lectures: lectures(7, 'c3-s4') },
-      { id: 'c3-s5', title: 'Testing', lectures: lectures(6, 'c3-s5') },
-      { id: 'c3-s6', title: 'Docker & Deployment', lectures: lectures(8, 'c3-s6', [0]) },
-    ],
-    reviewList: [
-      { id: 'c3-r1', author: 'Thierry N.', avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 5, date: '2026-10-05', comment: 'I landed a backend role two weeks after finishing. This track is gold.' },
-      { id: 'c3-r2', author: 'Liliane K.', avatar: 'https://images.pexels.com/photos/762020/pexels-photo-762020.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 5, date: '2026-09-22', comment: 'Deep, practical and well structured. The deployment section alone is worth it.' },
-    ],
-    featured: true,
-    popular: true,
-  },
-  {
-    id: 'c4',
-    slug: 'duolingo-advanced-course',
-    title: 'Duolingo Advanced English Course',
-    category: 'Exam Prep',
-    thumbnail: 'https://images.pexels.com/photos/256541/pexels-photo-256541.jpeg?auto=compress&cs=tinysrgb&w=800',
-    price: 450000,
-    instructorId: 'i4',
-    duration: '8 weeks',
-    lessons: 36,
-    students: 410,
-    rating: 4.9,
-    reviewsCount: 84,
-    level: 'Intermediate',
-    language: 'English',
-    certificate: true,
-    assessment: true,
-    shortDescription: 'Target a 130+ Duolingo English Test score with focused practice on every section and full mock tests.',
-    overview:
-      'This intensive course prepares you for the Duolingo English Test with section-by-section strategies, timed practice, speaking and writing templates, and four full-length mock exams with personalised feedback.',
-    takeaways: [
-      'Master all DET question types',
-      'Develop speaking and writing templates',
-      'Take 4 full mock tests with feedback',
-      'Learn time-management strategies',
-    ],
-    requirements: [
-      'Intermediate English (B1+)',
-      'A quiet space for speaking practice',
-    ],
-    outcomes: [
-      'Score 130+ on the Duolingo English Test',
-      'Approach the exam with proven strategies',
-      'Improve speaking fluency and writing clarity',
-    ],
-    curriculum: [
-      { id: 'c4-s1', title: 'Test Structure & Strategy', lectures: lectures(6, 'c4-s1', [0]) },
-      { id: 'c4-s2', title: 'Literacy & Comprehension', lectures: lectures(8, 'c4-s2', [0]) },
-      { id: 'c4-s3', title: 'Speaking Practice', lectures: lectures(7, 'c4-s3', [0]) },
-      { id: 'c4-s4', title: 'Writing Templates', lectures: lectures(6, 'c4-s4') },
-      { id: 'c4-s5', title: 'Full Mock Tests', lectures: lectures(5, 'c4-s5') },
-    ],
-    reviewList: [
-      { id: 'c4-r1', author: 'Benjamin H.', avatar: 'https://images.pexels.com/photos/1219186/pexels-photo-1219186.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 5, date: '2026-10-08', comment: 'Scored 135 after this course. The mock tests are incredibly realistic.' },
-    ],
-    popular: true,
-  },
-  {
-    id: 'c5',
-    slug: 'php-web-development',
-    title: 'PHP Web Development — Build Dynamic Sites',
-    category: 'Web Development',
-    thumbnail: 'https://images.pexels.com/photos/160107/pexels-photo-160107.jpeg?auto=compress&cs=tinysrgb&w=800',
-    price: 30000,
-    instructorId: 'i3',
-    duration: '8 weeks',
-    lessons: 32,
-    students: 680,
-    rating: 4.6,
-    reviewsCount: 112,
-    level: 'Beginner',
-    language: 'English',
-    certificate: true,
-    assessment: true,
-    shortDescription: 'Build dynamic, database-driven websites with PHP and MySQL — from syntax to a full CRUD project.',
-    overview:
-      'Learn PHP from the ground up and build your first dynamic website. This course covers PHP syntax, forms, sessions, MySQL with PDO, and a complete CRUD project you can deploy.',
-    takeaways: [
-      'Write clean PHP and handle forms securely',
-      'Connect to MySQL using PDO',
-      'Build authentication with sessions',
-      'Deploy a complete CRUD application',
-    ],
-    requirements: [
-      'Basic HTML & CSS',
-      'Local PHP environment (XAMPP or similar)',
-    ],
-    outcomes: [
-      'Build and deploy a dynamic PHP website',
-      'Understand server-side request handling',
-      'Be ready to learn Laravel or any PHP framework',
-    ],
-    curriculum: [
-      { id: 'c5-s1', title: 'PHP Fundamentals', lectures: lectures(7, 'c5-s1', [0]) },
-      { id: 'c5-s2', title: 'Forms & Sessions', lectures: lectures(6, 'c5-s2', [0]) },
-      { id: 'c5-s3', title: 'MySQL with PDO', lectures: lectures(8, 'c5-s3', [0]) },
-      { id: 'c5-s4', title: 'CRUD Project', lectures: lectures(6, 'c5-s4') },
-    ],
-    reviewList: [
-      { id: 'c5-r1', author: 'Olivier T.', avatar: 'https://images.pexels.com/photos/1462630/pexels-photo-1462630.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 5, date: '2026-10-01', comment: 'David makes PHP simple. The CRUD project gave me confidence to freelance.' },
-      { id: 'c5-r2', author: 'Naomi G.', avatar: 'https://images.pexels.com/photos/2169434/pexels-photo-2169434.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 4, date: '2026-09-18', comment: 'Great beginner course. Would love a follow-up on Laravel.' },
-    ],
-    popular: true,
-  },
-  {
-    id: 'c6',
-    slug: 'ielts-intensive-prep',
-    title: 'IELTS Intensive Preparation',
-    category: 'Exam Prep',
-    thumbnail: 'https://images.pexels.com/photos/207662/pexels-photo-207662.jpeg?auto=compress&cs=tinysrgb&w=800',
-    price: 1000000,
-    oldPrice: 1200000,
-    instructorId: 'i4',
-    duration: '10 weeks',
-    lessons: 60,
-    students: 290,
-    rating: 5.0,
-    reviewsCount: 67,
-    level: 'Intermediate',
-    language: 'English',
-    certificate: true,
-    assessment: true,
-    shortDescription: 'Achieve band 7.5+ with intensive, examiner-led IELTS prep covering all four skills with full mock tests.',
-    overview:
-      'Led by a certified IELTS examiner, this intensive program covers Listening, Reading, Writing and Speaking with examiner-grade feedback, writing corrections, and weekly mock tests under real exam conditions.',
-    takeaways: [
-      'Master all four IELTS skills',
-      'Get examiner feedback on writing & speaking',
-      'Take weekly full mock tests',
-      'Learn scoring criteria inside-out',
-    ],
-    requirements: [
-      'Upper-intermediate English (B2)',
-      'Commitment to 10+ hours weekly',
-    ],
-    outcomes: [
-      'Achieve IELTS band 7.5 or higher',
-      'Understand exactly how examiners score you',
-      'Approach test day with full confidence',
-    ],
-    curriculum: [
-      { id: 'c6-s1', title: 'Test Format & Scoring', lectures: lectures(6, 'c6-s1', [0]) },
-      { id: 'c6-s2', title: 'Listening Mastery', lectures: lectures(8, 'c6-s2', [0]) },
-      { id: 'c6-s3', title: 'Reading Strategies', lectures: lectures(8, 'c6-s3', [0]) },
-      { id: 'c6-s4', title: 'Writing Task 1 & 2', lectures: lectures(10, 'c6-s4', [0]) },
-      { id: 'c6-s5', title: 'Speaking Fluency', lectures: lectures(8, 'c6-s5', [0]) },
-      { id: 'c6-s6', title: 'Full Mock Tests', lectures: lectures(6, 'c6-s6') },
-    ],
-    reviewList: [
-      { id: 'c6-r1', author: 'Diane S.', avatar: 'https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg?auto=compress&cs=tinysrgb&w=100', rating: 5, date: '2026-10-10', comment: 'Got band 8.0! Grace knows exactly what the examiners want. Worth every franc.' },
-    ],
-    featured: true,
-    popular: true,
-  },
-];
+export function getLiveCourses(): Course[] {
+  try {
+    const adminCourses = useAdminStore.getState().courses;
+    return adminCourses
+      .filter((c) => c.published)
+      .map((c) => ({
+        id: c.id,
+        slug: c.id,
+        title: c.title,
+        category: (c.category as any) || 'Programming',
+        thumbnail:
+          c.thumbnail ||
+          'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&q=80',
+        price: c.discountPrice ?? c.price,
+        oldPrice: c.discountPrice ? c.price : undefined,
+        instructorId: c.instructorId,
+        duration: `${Math.max(1, (c.lessonsCount || 1) * 2)} hours`,
+        lessons: c.lessonsCount || 0,
+        students: c.studentsCount || 0,
+        rating: c.rating || 5.0,
+        reviewsCount: 0,
+        level: (c.level as any) || 'Beginner',
+        language: 'English',
+        certificate: c.certificate,
+        assessment: c.assessmentsEnabled,
+        shortDescription: c.shortDescription || c.title,
+        overview:
+          c.overview || 'Master this program through hands-on practice with FluentaRise Academy.',
+        takeaways: [
+          'Master essential concepts and modern workflows',
+          'Hands-on practical tasks with instructor grading',
+          'Verified completion certificate',
+        ],
+        requirements: ['Basic computer or mobile device with internet connectivity'],
+        outcomes: ['Practical mastery in the subject domain', 'Portfolio-ready capabilities'],
+        curriculum: (c.curriculum || []).map((sec) => ({
+          id: sec.id,
+          title: sec.title,
+          lectures: (sec.items || []).map((it) => ({
+            id: it.id,
+            title: it.title,
+            duration: 'durationMin' in it ? `${it.durationMin} mins` : 'Task',
+            preview: 'freePreview' in it ? Boolean(it.freePreview) : false,
+          })),
+        })),
+        reviewList: [],
+        popular: true,
+        featured: true,
+      }));
+  } catch {
+    return [];
+  }
+}
 
-export const getInstructor = (id: string): Instructor | undefined =>
-  instructors.find((i) => i.id === id);
+export const getInstructor = (id: string): Instructor | undefined => {
+  const local = instructors.find((i) => i.id === id);
+  if (local) return local;
+  try {
+    const adminIns = useAdminStore.getState().instructors.find((i) => i.id === id);
+    if (adminIns) {
+      return {
+        id: adminIns.id,
+        name: adminIns.name,
+        title: adminIns.title,
+        photo: adminIns.avatar,
+        bio: adminIns.bio,
+        rating: adminIns.rating,
+        students: adminIns.students,
+        coursesCount: adminIns.courseIds.length,
+        expertise: ['FluentaRise Certified Instructor'],
+      };
+    }
+  } catch {
+    // fallback
+  }
+  return undefined;
+};
 
-export const getCourseBySlug = (slug: string): Course | undefined =>
-  courses.find((c) => c.slug === slug);
+export const getCourseBySlug = (slug: string): Course | undefined => {
+  const local = courses.find((c) => c.slug === slug || c.id === slug);
+  if (local) return local;
+  return getLiveCourses().find((c) => c.slug === slug || c.id === slug);
+};
 
-export const events: EventItem[] = [
-  {
-    id: 'e1',
-    day: '14',
-    month: 'Nov',
-    title: 'Magazine Design Workshop',
-    venue: 'FluentaRise Studio, Kigali',
-    time: '10:00 AM — 1:00 PM',
-    description: 'A hands-on workshop on editorial layout, typography and cover design for modern digital magazines.',
-    category: 'Design',
-  },
-  {
-    id: 'e2',
-    day: '22',
-    month: 'Nov',
-    title: 'Robotic Process Automation Tech Primer',
-    venue: 'Online — Live',
-    time: '4:00 PM — 6:00 PM',
-    description: 'Discover how RPA is transforming finance and operations, and build your first automation in 2 hours.',
-    category: 'Technology',
-  },
-  {
-    id: 'e3',
-    day: '05',
-    month: 'Dec',
-    title: 'English Fluency Open Mic',
-    venue: 'FluentaRise Campus, Kigali',
-    time: '5:30 PM — 7:30 PM',
-    description: 'Practice public speaking and impromptu English in a friendly, supportive environment. All levels welcome.',
-    category: 'English',
-  },
-  {
-    id: 'e4',
-    day: '12',
-    month: 'Dec',
-    title: 'Java Backend Career Fair',
-    venue: 'Online — Live',
-    time: '11:00 AM — 2:00 PM',
-    description: 'Meet hiring partners looking for junior Java backend developers. Bring your portfolio project.',
-    category: 'Career',
-  },
-  {
-    id: 'e5',
-    day: '18',
-    month: 'Dec',
-    title: 'IELTS Strategy Masterclass',
-    venue: 'FluentaRise Campus, Kigali',
-    time: '9:00 AM — 12:00 PM',
-    description: 'A free masterclass with our certified examiner on cracking the writing and speaking sections.',
-    category: 'Exam Prep',
-  },
-  {
-    id: 'e6',
-    day: '09',
-    month: 'Jan',
-    title: 'Web Dev Bootcamp Kickoff',
-    venue: 'Online — Live',
-    time: '6:00 PM — 7:30 PM',
-    description: 'Kick off the new year with our 12-week full-stack web development bootcamp. Info session and Q&A.',
-    category: 'Technology',
-  },
-];
+export const events: EventItem[] = [];
 
-export const blogPosts: BlogPost[] = [
-  {
-    id: 'b1',
-    title: '5 Habits of Highly Fluent English Speakers',
-    excerpt: 'Fluency is not about big words — it is about consistent, small habits. Here are the five that matter most.',
-    author: 'Prince Dimpoz',
-    authorAvatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: '2026-11-02',
-    category: 'English Fluency',
-    image: 'https://images.pexels.com/photos/267885/pexels-photo-267885.jpeg?auto=compress&cs=tinysrgb&w=800',
-    views: 2480,
-    comments: 34,
-    readTime: '6 min',
-  },
-  {
-    id: 'b2',
-    title: 'Why Java Is Still the Best Backend Language in 2026',
-    excerpt: 'Spring Boot, a mature ecosystem and huge job market keep Java at the top. Here is why it still wins.',
-    author: 'Aline Uwase',
-    authorAvatar: 'https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: '2026-10-28',
-    category: 'Java & OOP',
-    image: 'https://images.pexels.com/photos/1181271/pexels-photo-1181271.jpeg?auto=compress&cs=tinysrgb&w=800',
-    views: 1920,
-    comments: 28,
-    readTime: '8 min',
-  },
-  {
-    id: 'b3',
-    title: 'How to Score Band 8.0 on the IELTS Writing Section',
-    excerpt: 'An examiner breaks down exactly what band 8.0 writing looks like — and the template that gets you there.',
-    author: 'Grace Iribagiza',
-    authorAvatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: '2026-10-20',
-    category: 'Exam Prep',
-    image: 'https://images.pexels.com/photos/207662/pexels-photo-207662.jpeg?auto=compress&cs=tinysrgb&w=800',
-    views: 3110,
-    comments: 52,
-    readTime: '10 min',
-  },
-  {
-    id: 'b4',
-    title: 'From Beginner to Freelancer: A PHP Developer Roadmap',
-    excerpt: 'A realistic, step-by-step roadmap to go from zero PHP to your first paying freelance client in 6 months.',
-    author: 'David Mugisha',
-    authorAvatar: 'https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: '2026-10-12',
-    category: 'Web Development',
-    image: 'https://images.pexels.com/photos/160107/pexels-photo-160107.jpeg?auto=compress&cs=tinysrgb&w=800',
-    views: 1670,
-    comments: 19,
-    readTime: '7 min',
-  },
-  {
-    id: 'b5',
-    title: 'The State of Remote Tech Jobs in East Africa',
-    excerpt: 'Salaries, in-demand skills and hiring platforms — a data-driven look at remote tech opportunities in 2026.',
-    author: 'Prince Dimpoz',
-    authorAvatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=100',
-    date: '2026-10-05',
-    category: 'Career',
-    image: 'https://images.pexels.com/photos/4226140/pexels-photo-4226140.jpeg?auto=compress&cs=tinysrgb&w=800',
-    views: 4250,
-    comments: 61,
-    readTime: '9 min',
-  },
-];
+export const blogPosts: BlogPost[] = [];
 
-export const testimonials: Testimonial[] = [
-  {
-    id: 't1',
-    name: 'Mugenzi Eric',
-    role: 'Junior Backend Developer, ACME Ltd',
-    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=120',
-    rating: 5,
-    quote: 'FluentaRise changed my career. I went from zero Java to a full backend role in under a year. The mentors actually care.',
-  },
-  {
-    id: 't2',
-    name: 'Claudine Niwemugeni',
-    role: 'Graduate Student, UK',
-    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=120',
-    rating: 5,
-    quote: 'I scored band 8.0 on IELTS and got into my dream master\'s program. Grace is the best exam coach I have ever met.',
-  },
-  {
-    id: 't3',
-    name: 'Patrick Kalisa',
-    role: 'Freelance Web Developer',
-    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=120',
-    rating: 5,
-    quote: 'The PHP course gave me my first freelance clients. David teaches the practical stuff you actually use on real projects.',
-  },
-  {
-    id: 't4',
-    name: 'Sandra Umutoni',
-    role: 'Customer Success Manager',
-    avatar: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=120',
-    rating: 5,
-    quote: 'My English fluency improved so much that I now lead client calls in English with total confidence. Thank you FluentaRise!',
-  },
-];
+export const testimonials: Testimonial[] = [];
 
-export const partnerLogos: { name: string; logo: string }[] = [
-  { name: 'Rwanda Coding Academy', logo: 'RCA' },
-  { name: 'Kigali Tech Hub', logo: 'KTH' },
-  { name: 'ACME Ltd', logo: 'ACME' },
-  { name: 'BrightPath', logo: 'BP' },
-  { name: 'EduConnect', logo: 'EC' },
-  { name: 'NextGen Devs', logo: 'NGD' },
-];
+export const partnerLogos: { name: string; logo: string }[] = [];
 
 export const pricingPlans: PricingPlan[] = [
   {
     id: 'startup',
-    name: 'Startup',
+    name: 'Individual Cohort',
     price: 50000,
-    tagline: 'Perfect for individual learners getting started.',
+    tagline: 'Standard cohort enrollment with live classes.',
     features: [
-      'Access to 1 course',
       'Live online classes',
-      'Community support',
+      'Curriculum access',
+      'Community mentorship',
+      'Course assessments',
       'Completion certificate',
-      'Monthly progress reports',
     ],
   },
   {
     id: 'premium',
-    name: 'Premium',
-    price: 250000,
-    tagline: 'For serious learners chasing career growth.',
+    name: 'Fast-Track Intensive',
+    price: 150000,
+    tagline: 'Accelerated exam prep and 1-on-1 coaching.',
     features: [
-      'Access to 3 courses',
-      'Priority live classes',
-      '1-on-1 mentor sessions',
-      'Verified certificate',
-      'Career coaching',
-      'Mock tests & assessments',
+      'Priority live sessions',
+      '1-on-1 mentor guidance',
+      'Dedicated mock exam reviews',
+      'Verified FluentaRise certificate',
+      'Unlimited assessment attempts',
     ],
     highlighted: true,
   },
   {
     id: 'enterprise',
-    name: 'Enterprise',
-    price: 900000,
-    tagline: 'For teams and organisations upskilling staff.',
+    name: 'Institutional / Team',
+    price: 600000,
+    tagline: 'For schools, NGOs, and corporate teams.',
     features: [
-      'Unlimited courses for 10 staff',
-      'Dedicated account manager',
-      'Custom learning paths',
-      'Team analytics dashboard',
-      'On-site workshops',
-      'Priority support 24/7',
+      'Custom group cohorts',
+      'Dedicated instructor assignment',
+      'Team progress reports',
+      'On-site or virtual workshops',
+      'Full administrative oversight',
     ],
   },
 ];
@@ -596,22 +153,18 @@ export const pricingPlans: PricingPlan[] = [
 export const faqs: { question: string; answer: string }[] = [
   {
     question: 'Are the classes live or pre-recorded?',
-    answer: 'Most of our courses combine live online classes with pre-recorded lectures you can revisit anytime. Live sessions are recorded and shared with enrolled students.',
+    answer: 'Our programs combine live online sessions with structured curriculum modules and interactive assignments.',
   },
   {
     question: 'Do I get a certificate after completing a course?',
-    answer: 'Yes. Every course that has the certificate badge issues a verifiable FluentaRise completion certificate once you finish the assessments with a passing score.',
+    answer: 'Yes. Every course issues a verifiable FluentaRise completion certificate once you finish the modules and pass the assessments.',
   },
   {
-    question: 'Can I pay in instalments?',
-    answer: 'Yes, our Premium and Enterprise plans support instalment payments. Contact our team and we will arrange a payment schedule that works for you.',
+    question: 'How do I pay for my enrollment?',
+    answer: 'You can pay using MTN Mobile Money (*182#), Airtel Money, or direct Bank of Kigali (BK) transfer during checkout.',
   },
   {
-    question: 'What happens if I miss a live class?',
-    answer: 'All live classes are recorded and uploaded within 24 hours, so you can catch up on anything you miss without falling behind.',
-  },
-  {
-    question: 'Do you offer job placement support?',
-    answer: 'Premium and Enterprise learners get access to career coaching, CV reviews and our hiring partner network. We also run quarterly career fairs.',
+    question: 'What happens after I register an account?',
+    answer: 'Your account registration is reviewed and activated by a Super Admin to ensure platform safety and verify cohort admission.',
   },
 ];

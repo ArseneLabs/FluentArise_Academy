@@ -313,19 +313,25 @@ function ReviewsTab({ course, breakdown }: { course: ReturnType<typeof getCourse
       <div>
         <h4 className="text-base font-bold text-brand-900">Student reviews</h4>
         <div className="mt-4 space-y-4">
-          {course.reviewList.map((r) => (
-            <div key={r.id} className="rounded-xl border border-slate-100 p-5">
-              <div className="flex items-center gap-3">
-                <img src={r.avatar} alt={r.author} className="h-10 w-10 rounded-full object-cover" />
-                <div>
-                  <p className="text-sm font-bold text-slate-800">{r.author}</p>
-                  <p className="text-xs text-slate-400">{new Date(r.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          {(!course.reviewList || course.reviewList.length === 0) ? (
+            <p className="text-xs text-slate-400 py-4 italic">
+              No student reviews submitted yet for this course.
+            </p>
+          ) : (
+            course.reviewList.map((r) => (
+              <div key={r.id} className="rounded-xl border border-slate-100 p-5">
+                <div className="flex items-center gap-3">
+                  <img src={r.avatar} alt={r.author} className="h-10 w-10 rounded-full object-cover" />
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">{r.author}</p>
+                    <p className="text-xs text-slate-400">{new Date(r.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  </div>
+                  <div className="ml-auto"><StarRating rating={r.rating} /></div>
                 </div>
-                <div className="ml-auto"><StarRating rating={r.rating} /></div>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{r.comment}</p>
               </div>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">{r.comment}</p>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

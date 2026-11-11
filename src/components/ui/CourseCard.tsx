@@ -11,6 +11,10 @@ const categoryColors: Record<string, string> = {
   'Java & OOP': 'bg-sky-50 text-sky-700',
   'Web Development': 'bg-emerald-50 text-emerald-700',
   'Exam Prep': 'bg-amber-50 text-amber-700',
+  'Languages': 'bg-indigo-50 text-indigo-700',
+  'Programming': 'bg-sky-50 text-sky-700',
+  'Test Prep': 'bg-amber-50 text-amber-700',
+  'Professional': 'bg-purple-50 text-purple-700',
 };
 
 export default function CourseCard({ course }: { course: Course }) {
@@ -39,7 +43,7 @@ export default function CourseCard({ course }: { course: Course }) {
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <span className={`absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-semibold ${categoryColors[course.category]}`}>
+        <span className={`absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-semibold ${categoryColors[course.category] || 'bg-brand-50 text-brand-700'}`}>
           {course.category}
         </span>
         {course.oldPrice && (
