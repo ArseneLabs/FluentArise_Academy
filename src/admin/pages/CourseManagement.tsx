@@ -32,6 +32,8 @@ import { PageHeader } from '../components/AdminLayout';
 import Badge from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
 import MediaUploader from '../components/ui/MediaUploader';
+import RichTextEditor from '../../components/common/RichTextEditor';
+import LectureMaterialsManager from '../../components/common/LectureMaterialsManager';
 import { formatRwf } from '../lib/format';
 import type { Course, CourseCategory, CourseLevel, Instructor } from '../types';
 
@@ -951,7 +953,7 @@ function CourseWizardModal({
   isSaving,
   onQuickAddInstructor,
 }: CourseWizardProps) {
-  const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'media' | 'instructor'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'media' | 'materials' | 'instructor'>('basic');
   const [showAddInstructor, setShowAddInstructor] = useState(false);
   const [newInsName, setNewInsName] = useState('');
   const [newInsTitle, setNewInsTitle] = useState('Senior Lecturer');
@@ -961,8 +963,9 @@ function CourseWizardModal({
   const tabs = [
     { id: 'basic' as const, label: '1. Basic Details' },
     { id: 'pricing' as const, label: '2. Pricing' },
-    { id: 'media' as const, label: '3. Media & Overview' },
-    { id: 'instructor' as const, label: '4. Instructor' },
+    { id: 'media' as const, label: '3. Media' },
+    { id: 'materials' as const, label: '4. Notes & Documents' },
+    { id: 'instructor' as const, label: '5. Instructor' },
   ];
 
   const handleCreateInstructor = (e: React.FormEvent) => {
@@ -1236,16 +1239,27 @@ function CourseWizardModal({
             placeholder="https://www.youtube.com/embed/… or video storage URL"
           />
 
-          <div>
-            <label className="label">Detailed Course Overview</label>
-            <textarea
-              rows={4}
-              className="input py-2.5"
-              value={course.overview || ''}
-              onChange={(e) => upd({ overview: e.target.value })}
-              placeholder="Provide an in-depth summary of what students will master during this cohort…"
-            />
-          </div>
+        </div>
+      )}
+
+      {/* TAB 4: NOTES & DOCUMENTS */}
+      {activeTab === 'materials' && (
+        <div className="space-y-6">
+          <RichTextEditor
+            label="In-depth Course Syllabus & Notes"
+            helperText="Provide structured lecture modules, reading schedule, or sketch diagrams"
+            value={course.overview || ''}
+            onChange={(html) => upd({ overview: html })}
+            placeholder="Write full syllabus notes, prerequisites, cohort expectations, or draw diagrams…"
+            minHeight="220px"
+          />
+
+          <LectureMaterialsManager
+            materials={course.materials || []}
+            onChange={(mats) => upd({ materials: mats })}
+            label="Course Handbooks & Materials (PDF, Word, Slides)"
+            helperText="Upload course-wide syllabus, cheat sheets, or downloadable reference documents for students"
+          />
         </div>
       )}
 

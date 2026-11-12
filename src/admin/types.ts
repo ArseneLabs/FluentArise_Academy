@@ -20,6 +20,15 @@ export interface Instructor {
 
 export type CurriculumItemKind = 'lecture' | 'quiz' | 'assignment' | 'test';
 
+export interface LectureMaterial {
+  id: string;
+  name: string;
+  size: string;
+  url: string;
+  type: 'pdf' | 'doc' | 'sheet' | 'slide' | 'archive' | 'text' | 'other';
+  uploadedAt: string;
+}
+
 export interface Lecture {
   id: string;
   kind: 'lecture';
@@ -28,6 +37,7 @@ export interface Lecture {
   videoUrl: string;
   freePreview: boolean;
   notes?: string;
+  materials?: LectureMaterial[];
 }
 
 export type QuestionType = 'single' | 'multi' | 'truefalse' | 'short';
@@ -97,6 +107,7 @@ export interface Course {
   curriculum: CurriculumSection[];
   shortDescription?: string;
   overview?: string;
+  materials?: LectureMaterial[];
 }
 
 export type SubmissionStatus =

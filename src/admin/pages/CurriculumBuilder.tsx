@@ -17,6 +17,7 @@ import {
   CircleDollarSign,
   Clock,
   Save,
+  Paperclip,
 } from 'lucide-react';
 import { useAdminStore } from '../store/adminStore';
 import Badge from '../components/ui/Badge';
@@ -209,10 +210,22 @@ export default function CurriculumBuilder() {
                           <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{item.title}</p>
                           <div className="flex items-center gap-3 text-xs text-slate-400">
                             {item.kind === 'lecture' && (
-                              <span className="flex items-center gap-1">
-                                <Clock size={11} /> {item.durationMin} min
-                                {item.freePreview && <span className="ml-1 text-success-600">· Free preview</span>}
-                              </span>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="flex items-center gap-1">
+                                  <Clock size={11} /> {item.durationMin} min
+                                  {item.freePreview && <span className="ml-1 text-success-600">· Free preview</span>}
+                                </span>
+                                {item.notes && (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-700 dark:text-brand-400">
+                                    <FileText size={11} /> Notes
+                                  </span>
+                                )}
+                                {item.materials && item.materials.length > 0 && (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-700 dark:text-purple-400">
+                                    <Paperclip size={11} /> {item.materials.length} {item.materials.length === 1 ? 'doc' : 'docs'}
+                                  </span>
+                                )}
+                              </div>
                             )}
                             {(item.kind === 'quiz' || item.kind === 'test') && (
                               <>
