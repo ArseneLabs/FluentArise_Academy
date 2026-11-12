@@ -13,8 +13,21 @@ import {
   getStoredUsers,
   saveStoredUsers,
   setActiveSessionUser,
+  clearActiveSession,
+  sanitizeUser,
 } from './userStore';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { useSessionTimeout } from './useSessionTimeout';
+import SessionWarningModal from './SessionWarningModal';
+
+// Brute-force rate limiting: 5 failed attempts = 5 min lockout
+interface RateLimitEntry {
+  attempts: number;
+  lockedUntil?: number;
+}
+const loginRateLimiter = new Map<string, RateLimitEntry>();
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 export interface AuthContextValue {
   user: AppUser | null;
@@ -76,7 +89,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: d.name,
               email: d.email,
               phone: d.phone,
-              password: d.password_hash,
               role: (d.role as UserRole) || 'student',
               status: (d.status as AccountStatus) || 'pending',
               createdAt: d.created_at,
@@ -108,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
         if (fresh) {
           if (fresh.status !== 'active') {
-            setActiveSessionUser(null);
+            clearActiveSession();
             setUser(null);
           } else {
             setActiveSessionUser(fresh);
@@ -143,7 +155,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: d.name,
             email: d.email,
             phone: d.phone,
-            password: d.password_hash,
             role: (d.role as UserRole) || 'student',
             status: (d.status as AccountStatus) || 'pending',
             createdAt: d.created_at,
@@ -169,11 +180,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return users.filter((u) => u.status === 'pending').length;
   }, [users]);
 
+  const signOut = useCallback(async () => {
+    clearActiveSession();
+    setUser(null);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  // 10-Minute Inactivity Auto Logout Engine
+  const handleTimeoutLogout = useCallback(() => {
+    signOut();
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login?reason=inactivity';
+    }
+  }, [signOut]);
+
+  const timeoutState = useSessionTimeout(Boolean(user), handleTimeoutLogout);
+
   const signIn = useCallback(
     async (email: string, password: string) => {
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Check in Supabase profiles database
+      // 1. Rate Limiting Check
+      const rateLimit = loginRateLimiter.get(normalizedEmail);
+      if (rateLimit?.lockedUntil && Date.now() < rateLimit.lockedUntil) {
+        const remainingSeconds = Math.ceil((rateLimit.lockedUntil - Date.now()) / 1000);
+        return {
+          error: `Too many failed login attempts. For security, your account is temporarily locked. Please wait ${remainingSeconds} seconds.`,
+        };
+      }
+
+      const registerFailedAttempt = () => {
+        const current = loginRateLimiter.get(normalizedEmail) || { attempts: 0 };
+        current.attempts += 1;
+        if (current.attempts >= MAX_FAILED_ATTEMPTS) {
+          current.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+          loginRateLimiter.set(normalizedEmail, current);
+          return 'Too many failed login attempts (5/5). Account locked for 5 minutes for your protection.';
+        } else {
+          loginRateLimiter.set(normalizedEmail, current);
+          return `Invalid password. Attempt ${current.attempts} of ${MAX_FAILED_ATTEMPTS}.`;
+        }
+      };
+
+      // 2. Query Supabase database
       if (isSupabaseConfigured) {
         try {
           const { data: dbUser, error: dbError } = await supabase
@@ -186,7 +241,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const passwordMatches = dbUser.password_hash === password;
 
             if (!passwordMatches) {
-              return { error: 'Invalid password. Please check your credentials and try again.' };
+              const errMsg = registerFailedAttempt();
+              return { error: errMsg };
             }
 
             if (dbUser.status === 'pending') {
@@ -204,12 +260,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               };
             }
 
+            // Success: clear failed attempts
+            loginRateLimiter.delete(normalizedEmail);
+
+            // Clean sanitized user without password in session
             const appUser: AppUser = {
               id: dbUser.id,
               name: dbUser.name,
               email: dbUser.email,
               phone: dbUser.phone,
-              password: dbUser.password_hash,
               role: (dbUser.role as UserRole) || 'student',
               status: (dbUser.status as AccountStatus) || 'active',
               createdAt: dbUser.created_at,
@@ -230,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Offline / local cache fallback
+      // 3. Offline / local cache fallback
       const currentUsers = getStoredUsers();
       const matched = currentUsers.find(
         (u) => u.email.toLowerCase() === normalizedEmail
@@ -242,7 +301,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const validPassword = matched.password && matched.password === password;
       if (!validPassword) {
-        return { error: 'Invalid password. Please check your credentials and try again.' };
+        const errMsg = registerFailedAttempt();
+        return { error: errMsg };
       }
 
       if (matched.status === 'pending') {
@@ -260,9 +320,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      setActiveSessionUser(matched);
-      setUser(matched);
-      return { error: null, user: matched };
+      // Success
+      loginRateLimiter.delete(normalizedEmail);
+
+      const safeUser = sanitizeUser(matched);
+      setActiveSessionUser(safeUser);
+      setUser(safeUser);
+      return { error: null, user: safeUser };
     },
     []
   );
@@ -277,12 +341,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email.trim().toLowerCase();
       const currentUsers = getStoredUsers();
 
-      // Check local cache
       if (currentUsers.some((u) => u.email.toLowerCase() === normalizedEmail)) {
         return { error: 'An account with this email address already exists. Please sign in instead.' };
       }
 
-      // Check Supabase if configured
       if (isSupabaseConfigured) {
         try {
           const { data: existing } = await supabase
@@ -340,18 +402,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     []
   );
-
-  const signOut = useCallback(async () => {
-    setActiveSessionUser(null);
-    setUser(null);
-    if (isSupabaseConfigured) {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        // ignore
-      }
-    }
-  }, []);
 
   const approveUser = useCallback(
     async (userId: string) => {
@@ -453,7 +503,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUsers(updated);
 
       if (user?.id === userId && newStatus !== 'active') {
-        setActiveSessionUser(null);
+        clearActiveSession();
         setUser(null);
       }
       return { error: null };
@@ -537,7 +587,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       saveStoredUsers(updated);
       setUsers(updated);
       if (user?.id === userId) {
-        setActiveSessionUser(null);
+        clearActiveSession();
         setUser(null);
       }
       return { error: null };
@@ -581,7 +631,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <SessionWarningModal
+        open={timeoutState.showWarning}
+        secondsRemaining={timeoutState.secondsRemaining}
+        onStayLoggedIn={timeoutState.stayLoggedIn}
+        onLogoutNow={timeoutState.logoutNow}
+      />
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

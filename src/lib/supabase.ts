@@ -18,3 +18,24 @@ if (!isSupabaseConfigured) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+/**
+ * Non-blocking keepalive ping to prevent Supabase Free Tier project auto-pausing.
+ * Fires in the background without blocking render.
+ */
+export async function pingSupabase(): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  try {
+    const { error } = await supabase.from('courses').select('id', { count: 'exact', head: true });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// Background keepalive invocation
+if (typeof window !== 'undefined' && isSupabaseConfigured) {
+  setTimeout(() => {
+    pingSupabase().catch(() => {});
+  }, 2000);
+}

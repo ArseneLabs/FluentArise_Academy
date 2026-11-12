@@ -19,6 +19,14 @@ export interface AppUser {
   enrolledCourseIds?: string[];
 }
 
+export interface UserSession {
+  sessionId: string;
+  user: AppUser;
+  createdAt: number;
+  lastActiveAt: number;
+  expiresAt: number;
+}
+
 export interface AuthSession {
   user: AppUser;
   token: string;
