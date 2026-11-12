@@ -11,11 +11,9 @@ import {
   Settings,
   LogOut,
   X,
-  GraduationCap,
   Globe,
   UserCheck,
   Shield,
-  Layers,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
@@ -115,30 +113,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               {adminOpsNav.map((item) => (
                 <NavRow key={item.to} item={item} onNavigate={onClose} />
               ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Portals Preview
-            </p>
-            <div className="space-y-1">
-              <Link
-                to="/instructor"
-                onClick={onClose}
-                className="flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition"
-              >
-                <GraduationCap size={16} className="text-emerald-600" />
-                <span>Instructor Portal</span>
-              </Link>
-              <Link
-                to="/student"
-                onClick={onClose}
-                className="flex items-center gap-3 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-purple-50 hover:text-purple-700 transition"
-              >
-                <Layers size={16} className="text-purple-600" />
-                <span>Student Portal</span>
-              </Link>
             </div>
           </div>
         </nav>

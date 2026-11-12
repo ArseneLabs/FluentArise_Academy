@@ -12,7 +12,16 @@ import {
   Plus,
   Trash2,
   AlertCircle,
-  Sparkles,
+  Pencil,
+  KeyRound,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Phone,
+  Mail,
+  ShieldAlert,
+  Save,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { PageHeader } from '../components/AdminLayout';
@@ -22,33 +31,62 @@ import type { AppUser, UserRole, AccountStatus } from '../../auth/types';
 
 export default function UserManagement() {
   const {
+    user: currentLoggedInUser,
     allUsers,
     pendingUsersCount,
     approveUser,
     rejectUser,
     updateUserRole,
     updateUserStatus,
+    updateUser,
     addUserDirect,
     deleteUser,
+    refreshUsers,
   } = useAuth();
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | AccountStatus>('all');
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [feedback, setFeedback] = useState<{ message: string; tone: 'success' | 'info' } | null>(
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState<AppUser | null>(null);
+  const [feedback, setFeedback] = useState<{ message: string; tone: 'success' | 'info' | 'error' } | null>(
     null
   );
 
   // New User Form State
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('student');
   const [newStatus, setNewStatus] = useState<AccountStatus>('active');
   const [newHeadline, setNewHeadline] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
-  // Pending users
+  // Edit User Form State
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editRole, setEditRole] = useState<UserRole>('student');
+  const [editStatus, setEditStatus] = useState<AccountStatus>('active');
+  const [editHeadline, setEditHeadline] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editNewPassword, setEditNewPassword] = useState('');
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Helper to generate a strong random password
+  const generateStrongPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+    let result = '';
+    for (let i = 0; i < 12; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  // Pending users queue
   const pendingUsers = useMemo(
     () => allUsers.filter((u) => u.status === 'pending'),
     [allUsers]
@@ -59,7 +97,8 @@ export default function UserManagement() {
     return allUsers.filter((u) => {
       const matchSearch =
         u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase());
+        u.email.toLowerCase().includes(search.toLowerCase()) ||
+        (u.phone && u.phone.includes(search));
       const matchRole = roleFilter === 'all' || u.role === roleFilter;
       const matchStatus = statusFilter === 'all' || u.status === statusFilter;
       return matchSearch && matchRole && matchStatus;
@@ -88,14 +127,22 @@ export default function UserManagement() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsSubmitting(true);
     const res = await addUserDirect({
       name: newName,
       email: newEmail,
+      phone: newPhone,
       password: newPassword,
       role: newRole,
       status: newStatus,
       headline: newHeadline,
     });
+    setIsSubmitting(false);
 
     if (res.error) {
       alert(res.error);
@@ -105,10 +152,80 @@ export default function UserManagement() {
     setAddModalOpen(false);
     setNewName('');
     setNewEmail('');
+    setNewPhone('');
+    setNewPassword('');
     setNewHeadline('');
     setFeedback({
       message: `User ${newName} successfully created as ${newRole}!`,
       tone: 'success',
+    });
+    setTimeout(() => setFeedback(null), 5000);
+  };
+
+  const openEditModal = (u: AppUser) => {
+    setEditingUser(u);
+    setEditName(u.name);
+    setEditEmail(u.email);
+    setEditPhone(u.phone || '');
+    setEditRole(u.role);
+    setEditStatus(u.status);
+    setEditHeadline(u.headline || '');
+    setEditBio(u.bio || '');
+    setEditNewPassword('');
+    setShowEditPassword(false);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    if (editNewPassword && editNewPassword.length < 6) {
+      alert('New password must be at least 6 characters.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const res = await updateUser(editingUser.id, {
+      name: editName,
+      email: editEmail,
+      phone: editPhone,
+      role: editRole,
+      status: editStatus,
+      headline: editHeadline,
+      bio: editBio,
+      ...(editNewPassword ? { password: editNewPassword } : {}),
+    });
+    setIsSubmitting(false);
+
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+
+    setEditingUser(null);
+    setFeedback({
+      message: `User profile for ${editName} updated successfully!`,
+      tone: 'success',
+    });
+    setTimeout(() => setFeedback(null), 5000);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    setIsSubmitting(true);
+    const res = await deleteUser(deletingUser.id);
+    setIsSubmitting(false);
+
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+
+    const deletedName = deletingUser.name;
+    setDeletingUser(null);
+    setFeedback({
+      message: `Account for ${deletedName} has been permanently deleted.`,
+      tone: 'info',
     });
     setTimeout(() => setFeedback(null), 5000);
   };
@@ -121,15 +238,27 @@ export default function UserManagement() {
     <div className="space-y-6">
       <PageHeader
         title="Users & Approvals"
-        subtitle="Review new registrations, approve accounts for login, manage user roles, and monitor academy access."
+        subtitle="Manage academy user accounts, control roles, review registrations, and enforce security policies."
         icon={<Users size={22} />}
         actions={
-          <button
-            onClick={() => setAddModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-sky-600/20 hover:bg-sky-700 transition"
-          >
-            <Plus size={16} /> Add User Directly
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => refreshUsers()}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+              title="Refresh from Supabase"
+            >
+              <RefreshCw size={14} /> Refresh
+            </button>
+            <button
+              onClick={() => {
+                setNewPassword(generateStrongPassword());
+                setAddModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-brand-800 px-4 py-2 text-xs font-bold text-white shadow hover:bg-brand-900 transition"
+            >
+              <Plus size={15} /> Add User Directly
+            </button>
+          </div>
         }
       />
 
@@ -138,6 +267,8 @@ export default function UserManagement() {
           className={`flex items-center gap-3 rounded-2xl p-4 text-sm font-medium shadow-sm transition animate-fade-in ${
             feedback.tone === 'success'
               ? 'border border-emerald-200 bg-emerald-50 text-emerald-900'
+              : feedback.tone === 'error'
+              ? 'border border-rose-200 bg-rose-50 text-rose-900'
               : 'border border-sky-200 bg-sky-50 text-sky-900'
           }`}
         >
@@ -289,14 +420,19 @@ export default function UserManagement() {
                         className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
                           pending.role === 'instructor'
                             ? 'bg-emerald-100 text-emerald-800'
+                            : pending.role === 'super_admin'
+                            ? 'bg-sky-100 text-sky-800'
                             : 'bg-purple-100 text-purple-800'
                         }`}
                       >
                         Applied as {pending.role}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">{pending.email}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                      <span>{pending.email}</span>
+                      {pending.phone && <span>· {pending.phone}</span>}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
                       Registered: {new Date(pending.createdAt).toLocaleDateString()} at{' '}
                       {new Date(pending.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -309,6 +445,12 @@ export default function UserManagement() {
                     className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700 transition"
                   >
                     <UserCheck size={15} /> Approve & Activate
+                  </button>
+                  <button
+                    onClick={() => openEditModal(pending)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    <Pencil size={14} /> Review / Edit
                   </button>
                   <button
                     onClick={() => handleReject(pending)}
@@ -342,10 +484,10 @@ export default function UserManagement() {
               />
               <input
                 type="text"
-                placeholder="Search name or email…"
+                placeholder="Search name, email, phone…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs outline-none focus:border-sky-500 focus:bg-white transition"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs outline-none focus:border-brand-500 focus:bg-white transition"
               />
             </div>
 
@@ -353,23 +495,23 @@ export default function UserManagement() {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value as any)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-sky-500"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-500"
             >
-              <option value="all">All Roles</option>
-              <option value="super_admin">Super Admins</option>
-              <option value="instructor">Instructors</option>
-              <option value="student">Students</option>
+              <option value="all">All Roles ({allUsers.length})</option>
+              <option value="super_admin">Super Admins ({superAdminCount})</option>
+              <option value="instructor">Instructors ({instructorCount})</option>
+              <option value="student">Students ({studentCount})</option>
             </select>
 
             {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-sky-500"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-500"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active Only</option>
-              <option value="pending">Pending Only</option>
+              <option value="pending">Pending Approval</option>
               <option value="suspended">Suspended Only</option>
             </select>
           </div>
@@ -380,7 +522,8 @@ export default function UserManagement() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-3">User</th>
+                <th className="py-3 px-3">User & Profile</th>
+                <th className="py-3 px-3">Contact</th>
                 <th className="py-3 px-3">Role</th>
                 <th className="py-3 px-3">Status</th>
                 <th className="py-3 px-3">Joined Date</th>
@@ -388,182 +531,234 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredUsers.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50/70 transition">
-                  <td className="py-3 px-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={
-                          u.avatar ||
-                          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`
-                        }
-                        alt={u.name}
-                        className="h-9 w-9 rounded-lg object-cover border border-slate-200"
-                      />
-                      <div>
-                        <p className="font-bold text-slate-900">{u.name}</p>
-                        <p className="text-xs text-slate-500">{u.email}</p>
+              {filteredUsers.map((u) => {
+                const isSelf = currentLoggedInUser?.id === u.id;
+                return (
+                  <tr key={u.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={
+                            u.avatar ||
+                            `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`
+                          }
+                          alt={u.name}
+                          className="h-10 w-10 rounded-xl object-cover border border-slate-200"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-slate-900">{u.name}</p>
+                            {isSelf && (
+                              <span className="rounded bg-sky-100 px-1.5 py-0.2 text-[10px] font-bold text-sky-800">
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400">{u.headline || 'Member'}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="py-3 px-3">
-                    <select
-                      value={u.role}
-                      onChange={(e) => updateUserRole(u.id, e.target.value as UserRole)}
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none focus:border-sky-500"
-                    >
-                      <option value="super_admin">Super Admin</option>
-                      <option value="instructor">Instructor</option>
-                      <option value="student">Student</option>
-                    </select>
-                  </td>
+                    <td className="py-3 px-3">
+                      <div className="text-xs">
+                        <p className="font-medium text-slate-800">{u.email}</p>
+                        {u.phone && <p className="text-slate-400 mt-0.5">{u.phone}</p>}
+                      </div>
+                    </td>
 
-                  <td className="py-3 px-3">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        u.status === 'active'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : u.status === 'pending'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          u.status === 'active'
-                            ? 'bg-emerald-500'
-                            : u.status === 'pending'
-                            ? 'bg-amber-500'
-                            : 'bg-red-500'
+                    <td className="py-3 px-3">
+                      <select
+                        value={u.role}
+                        disabled={isSelf}
+                        onChange={(e) => updateUserRole(u.id, e.target.value as UserRole)}
+                        className={`rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold outline-none focus:border-brand-500 ${
+                          isSelf ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700'
                         }`}
-                      />
-                      {u.status === 'active'
-                        ? 'Active'
-                        : u.status === 'pending'
-                        ? 'Pending Approval'
-                        : 'Suspended'}
-                    </span>
-                  </td>
+                      >
+                        <option value="super_admin">Super Admin</option>
+                        <option value="instructor">Instructor</option>
+                        <option value="student">Student</option>
+                      </select>
+                    </td>
 
-                  <td className="py-3 px-3 text-xs text-slate-500">
-                    {new Date(u.createdAt).toLocaleDateString()}
-                  </td>
+                    <td className="py-3 px-3">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                          u.status === 'active'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : u.status === 'pending'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            u.status === 'active'
+                              ? 'bg-emerald-500'
+                              : u.status === 'pending'
+                              ? 'bg-amber-500'
+                              : 'bg-red-500'
+                          }`}
+                        />
+                        {u.status === 'active'
+                          ? 'Active'
+                          : u.status === 'pending'
+                          ? 'Pending Approval'
+                          : 'Suspended'}
+                      </span>
+                    </td>
 
-                  <td className="py-3 px-3 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {u.status === 'pending' ? (
-                        <button
-                          onClick={() => handleApprove(u)}
-                          className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
-                        >
-                          Approve
-                        </button>
-                      ) : u.status === 'active' ? (
-                        <button
-                          onClick={() => updateUserStatus(u.id, 'suspended')}
-                          className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-amber-50 hover:text-amber-700 transition"
-                          title="Suspend user access"
-                        >
-                          Suspend
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => updateUserStatus(u.id, 'active')}
-                          className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
-                          title="Reactivate user access"
-                        >
-                          Reactivate
-                        </button>
-                      )}
+                    <td className="py-3 px-3 text-xs text-slate-500">
+                      {new Date(u.createdAt).toLocaleDateString()}
+                    </td>
 
-                      {u.role !== 'super_admin' && (
+                    <td className="py-3 px-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {u.status === 'pending' ? (
+                          <button
+                            onClick={() => handleApprove(u)}
+                            className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                          >
+                            Approve
+                          </button>
+                        ) : u.status === 'active' ? (
+                          <button
+                            disabled={isSelf}
+                            onClick={() => updateUserStatus(u.id, 'suspended')}
+                            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-amber-50 hover:text-amber-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                            title={isSelf ? 'Cannot suspend your own account' : 'Suspend user access'}
+                          >
+                            Suspend
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateUserStatus(u.id, 'active')}
+                            className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                            title="Reactivate user access"
+                          >
+                            Reactivate
+                          </button>
+                        )}
+
                         <button
-                          onClick={() => {
-                            if (confirm(`Delete account for ${u.name}?`)) {
-                              deleteUser(u.id);
-                            }
-                          }}
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition"
-                          title="Delete user"
+                          onClick={() => openEditModal(u)}
+                          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-brand-800 transition"
+                          title="Edit profile & reset password"
+                        >
+                          <Pencil size={15} />
+                        </button>
+
+                        <button
+                          disabled={isSelf}
+                          onClick={() => setDeletingUser(u)}
+                          className={`rounded-lg p-1.5 transition ${
+                            isSelf
+                              ? 'text-slate-300 cursor-not-allowed'
+                              : 'text-slate-400 hover:bg-red-50 hover:text-red-600'
+                          }`}
+                          title={isSelf ? 'Cannot delete your own account' : 'Delete user'}
                         >
                           <Trash2 size={15} />
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
           {filteredUsers.length === 0 && (
             <div className="py-8 text-center text-xs text-slate-400">
-              No users match the selected filters.
+              No users match the search criteria.
             </div>
           )}
         </div>
       </section>
 
-      {/* ADD USER DIRECTLY MODAL */}
+      {/* 1. ADD USER DIRECTLY MODAL */}
       <Modal
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         title="Add User Directly"
-        subtitle="Create an academy account with pre-approved active status."
+        subtitle="Create a new authenticated account in Supabase database."
+        size="md"
       >
         <form onSubmit={handleCreateUser} className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase text-slate-600">
-              Full Name
-            </label>
+            <label className="label">Full Name *</label>
             <input
               required
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. Samuel Kayiranga"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="input font-semibold"
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-bold uppercase text-slate-600">
-              Email Address
-            </label>
-            <input
-              required
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="samuel@fluentarise.com"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-bold uppercase text-slate-600">
-              Temporary Password
-            </label>
-            <input
-              required
-              type="text"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Enter initial password"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase text-slate-600">
-                Assigned Role
-              </label>
+              <label className="label">Email Address *</label>
+              <input
+                required
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="samuel@fluentarise.com"
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="label">Phone Number (Optional)</label>
+              <input
+                type="tel"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="+250780000000"
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label mb-0">Initial Password *</label>
+              <button
+                type="button"
+                onClick={() => setNewPassword(generateStrongPassword())}
+                className="text-xs font-bold text-brand-700 hover:underline flex items-center gap-1"
+              >
+                <KeyRound size={12} /> Generate Strong Password
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                required
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 6 characters"
+                className="input pr-10 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Assigned Role</label>
               <select
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value as UserRole)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                className="input"
               >
                 <option value="student">Student</option>
                 <option value="instructor">Instructor</option>
@@ -572,15 +767,13 @@ export default function UserManagement() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase text-slate-600">
-                Initial Status
-              </label>
+              <label className="label">Account Status</label>
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value as AccountStatus)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-500"
+                className="input"
               >
-                <option value="active">Active (Can log in immediately)</option>
+                <option value="active">Active (Immediate Login)</option>
                 <option value="pending">Pending Approval</option>
                 <option value="suspended">Suspended</option>
               </select>
@@ -588,15 +781,13 @@ export default function UserManagement() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase text-slate-600">
-              Headline / Title (Optional)
-            </label>
+            <label className="label">Headline / Title (Optional)</label>
             <input
               type="text"
               value={newHeadline}
               onChange={(e) => setNewHeadline(e.target.value)}
               placeholder="e.g. Lead Java Instructor or Web Dev Student"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="input"
             />
           </div>
 
@@ -604,18 +795,206 @@ export default function UserManagement() {
             <button
               type="button"
               onClick={() => setAddModalOpen(false)}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+              className="btn-outline"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-sky-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-sky-700 transition"
+              disabled={isSubmitting || !newName.trim() || !newEmail.trim()}
+              className="btn-primary"
             >
-              Save & Create Account
+              {isSubmitting ? 'Saving to Database…' : 'Save & Create Account'}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* 2. EDIT USER & RESET PASSWORD MODAL */}
+      <Modal
+        open={Boolean(editingUser)}
+        onClose={() => setEditingUser(null)}
+        title={editingUser ? `Edit Account: ${editingUser.name}` : 'Edit User'}
+        subtitle="Update profile details, contact information, role, or reset password."
+        size="md"
+      >
+        <form onSubmit={handleUpdateUser} className="space-y-4">
+          <div>
+            <label className="label">Full Name *</label>
+            <input
+              required
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="input font-semibold"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Email Address *</label>
+              <input
+                required
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="label">Phone Number</label>
+              <input
+                type="tel"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="+250780000000"
+                className="input"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Role</label>
+              <select
+                value={editRole}
+                disabled={currentLoggedInUser?.id === editingUser?.id}
+                onChange={(e) => setEditRole(e.target.value as UserRole)}
+                className="input"
+              >
+                <option value="student">Student</option>
+                <option value="instructor">Instructor</option>
+                <option value="super_admin">Super Admin</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Status</label>
+              <select
+                value={editStatus}
+                disabled={currentLoggedInUser?.id === editingUser?.id}
+                onChange={(e) => setEditStatus(e.target.value as AccountStatus)}
+                className="input"
+              >
+                <option value="active">Active (Can Log In)</option>
+                <option value="pending">Pending Approval</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Reset Password Field */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <KeyRound size={13} className="text-brand-700" /> Reset Password (Optional)
+              </label>
+              <button
+                type="button"
+                onClick={() => setEditNewPassword(generateStrongPassword())}
+                className="text-[11px] font-bold text-brand-700 hover:underline"
+              >
+                Generate Password
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Leave blank to keep the current password unchanged. Enter a new password to reset it.
+            </p>
+            <div className="relative">
+              <input
+                type={showEditPassword ? 'text' : 'password'}
+                value={editNewPassword}
+                onChange={(e) => setEditNewPassword(e.target.value)}
+                placeholder="Enter new password (optional)"
+                className="input pr-10 font-mono text-xs bg-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowEditPassword(!showEditPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showEditPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Headline / Title</label>
+            <input
+              type="text"
+              value={editHeadline}
+              onChange={(e) => setEditHeadline(e.target.value)}
+              placeholder="e.g. Lead Java Instructor"
+              className="input"
+            />
+          </div>
+
+          <div>
+            <label className="label">Bio</label>
+            <textarea
+              rows={2}
+              value={editBio}
+              onChange={(e) => setEditBio(e.target.value)}
+              placeholder="Brief biography or instructor credentials…"
+              className="input text-xs"
+            />
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={() => setEditingUser(null)}
+              className="btn-outline"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !editName.trim() || !editEmail.trim()}
+              className="btn-primary"
+            >
+              <Save size={15} /> {isSubmitting ? 'Saving Changes…' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* 3. DELETE CONFIRMATION MODAL */}
+      <Modal
+        open={Boolean(deletingUser)}
+        onClose={() => setDeletingUser(null)}
+        title="Delete User Account"
+        subtitle="Permanently remove user credentials and profile."
+        size="sm"
+        footer={
+          <>
+            <button className="btn-outline" onClick={() => setDeletingUser(null)}>
+              Cancel
+            </button>
+            <button
+              disabled={isSubmitting || currentLoggedInUser?.id === deletingUser?.id}
+              className="btn-danger"
+              onClick={handleDeleteUser}
+            >
+              <Trash2 size={15} /> Delete Account
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          {currentLoggedInUser?.id === deletingUser?.id ? (
+            <div className="rounded-xl bg-amber-50 p-3.5 text-xs text-amber-800 border border-amber-200">
+              <ShieldAlert size={18} className="text-amber-600 mb-1" />
+              <strong>Protected Account:</strong> You cannot delete your own Super Admin account while signed in.
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600">
+              Are you sure you want to permanently delete the account for{' '}
+              <strong className="text-slate-900">{deletingUser?.name}</strong> ({deletingUser?.email})? This action cannot be undone.
+            </p>
+          )}
+        </div>
       </Modal>
     </div>
   );

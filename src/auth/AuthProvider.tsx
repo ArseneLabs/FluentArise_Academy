@@ -50,13 +50,28 @@ export interface AuthContextValue {
   rejectUser: (userId: string) => Promise<{ error: string | null }>;
   updateUserRole: (userId: string, newRole: UserRole) => Promise<{ error: string | null }>;
   updateUserStatus: (userId: string, newStatus: AccountStatus) => Promise<{ error: string | null }>;
+  updateUser: (
+    userId: string,
+    updates: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      role?: UserRole;
+      status?: AccountStatus;
+      headline?: string;
+      bio?: string;
+      password?: string;
+    }
+  ) => Promise<{ error: string | null }>;
   addUserDirect: (userData: {
     name: string;
     email: string;
     password?: string;
+    phone?: string;
     role: UserRole;
     status?: AccountStatus;
     headline?: string;
+    bio?: string;
   }) => Promise<{ error: string | null; user?: AppUser }>;
   deleteUser: (userId: string) => Promise<{ error: string | null }>;
   refreshUsers: () => void;
@@ -511,14 +526,115 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
+  const updateUser = useCallback(
+    async (
+      userId: string,
+      updates: {
+        name?: string;
+        email?: string;
+        phone?: string;
+        role?: UserRole;
+        status?: AccountStatus;
+        headline?: string;
+        bio?: string;
+        password?: string;
+      }
+    ) => {
+      const currentUsers = getStoredUsers();
+      const existing = currentUsers.find((u) => u.id === userId);
+      if (!existing) {
+        return { error: 'User not found in system.' };
+      }
+
+      if (updates.email && updates.email.toLowerCase() !== existing.email.toLowerCase()) {
+        const normalized = updates.email.trim().toLowerCase();
+        if (currentUsers.some((u) => u.id !== userId && u.email.toLowerCase() === normalized)) {
+          return { error: 'Another account already uses this email address.' };
+        }
+      }
+
+      const dbPayload: any = {
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.name !== undefined) dbPayload.name = updates.name.trim();
+      if (updates.email !== undefined) dbPayload.email = updates.email.trim().toLowerCase();
+      if (updates.phone !== undefined) dbPayload.phone = updates.phone.trim();
+      if (updates.role !== undefined) dbPayload.role = updates.role;
+      if (updates.status !== undefined) {
+        dbPayload.status = updates.status;
+        if (updates.status === 'active' && !existing.approvedAt) {
+          dbPayload.approved_at = new Date().toISOString();
+          dbPayload.approved_by = user?.name || 'Super Admin';
+        }
+      }
+      if (updates.headline !== undefined) dbPayload.headline = updates.headline.trim();
+      if (updates.bio !== undefined) dbPayload.bio = updates.bio.trim();
+      if (updates.password && updates.password.trim()) {
+        dbPayload.password_hash = updates.password.trim();
+      }
+
+      if (isSupabaseConfigured) {
+        try {
+          const { error } = await supabase.from('profiles').update(dbPayload).eq('id', userId);
+          if (error) {
+            console.warn('Supabase update user error:', error);
+          }
+        } catch (err) {
+          console.warn('Could not update user in Supabase:', err);
+        }
+      }
+
+      const updated = currentUsers.map((u) => {
+        if (u.id !== userId) return u;
+        return {
+          ...u,
+          ...(updates.name !== undefined && { name: updates.name.trim() }),
+          ...(updates.email !== undefined && { email: updates.email.trim().toLowerCase() }),
+          ...(updates.phone !== undefined && { phone: updates.phone.trim() }),
+          ...(updates.role !== undefined && { role: updates.role }),
+          ...(updates.status !== undefined && { status: updates.status }),
+          ...(updates.headline !== undefined && { headline: updates.headline.trim() }),
+          ...(updates.bio !== undefined && { bio: updates.bio.trim() }),
+          ...(updates.password && { password: updates.password.trim() }),
+          ...(updates.status === 'active' && !u.approvedAt && {
+            approvedAt: new Date().toISOString(),
+            approvedBy: user?.name || 'Super Admin',
+          }),
+        };
+      });
+
+      saveStoredUsers(updated);
+      setUsers(updated);
+
+      if (user?.id === userId) {
+        const updatedSelf = updated.find((u) => u.id === userId);
+        if (updatedSelf) {
+          if (updatedSelf.status !== 'active') {
+            clearActiveSession();
+            setUser(null);
+          } else {
+            const safe = sanitizeUser(updatedSelf);
+            setActiveSessionUser(safe);
+            setUser(safe);
+          }
+        }
+      }
+
+      return { error: null };
+    },
+    [user]
+  );
+
   const addUserDirect = useCallback(
     async (userData: {
       name: string;
       email: string;
       password?: string;
+      phone?: string;
       role: UserRole;
       status?: AccountStatus;
       headline?: string;
+      bio?: string;
     }) => {
       const currentUsers = getStoredUsers();
       const normalizedEmail = userData.email.trim().toLowerCase();
@@ -532,12 +648,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: userData.name.trim(),
         email: normalizedEmail,
         password: userData.password,
+        phone: userData.phone || '',
         role: userData.role,
         status: userData.status || 'active',
         createdAt: new Date().toISOString(),
         approvedAt: userData.status === 'active' ? new Date().toISOString() : undefined,
         approvedBy: user?.name || 'Super Admin',
         headline: userData.headline || `${userData.role} at FluentaRise`,
+        bio: userData.bio || '',
         avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name.trim())}&backgroundColor=0284c7`,
       };
 
@@ -549,10 +667,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: newUser.name,
               email: newUser.email,
               password_hash: newUser.password,
-              phone: '',
+              phone: newUser.phone,
               role: newUser.role,
               status: newUser.status,
               headline: newUser.headline,
+              bio: newUser.bio,
               avatar: newUser.avatar,
               created_at: newUser.createdAt,
               approved_at: newUser.approvedAt,
@@ -574,6 +693,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteUser = useCallback(
     async (userId: string) => {
+      if (user?.id === userId) {
+        return { error: 'Security Protection: You cannot delete your own active Super Admin account.' };
+      }
+
       if (isSupabaseConfigured) {
         try {
           await supabase.from('profiles').delete().eq('id', userId);
@@ -586,10 +709,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updated = currentUsers.filter((u) => u.id !== userId);
       saveStoredUsers(updated);
       setUsers(updated);
-      if (user?.id === userId) {
-        clearActiveSession();
-        setUser(null);
-      }
       return { error: null };
     },
     [user]
@@ -609,6 +728,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       rejectUser,
       updateUserRole,
       updateUserStatus,
+      updateUser,
       addUserDirect,
       deleteUser,
       refreshUsers,
@@ -625,6 +745,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       rejectUser,
       updateUserRole,
       updateUserStatus,
+      updateUser,
       addUserDirect,
       deleteUser,
       refreshUsers,

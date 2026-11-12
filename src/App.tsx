@@ -98,11 +98,11 @@ export default function App() {
                 <Route path="settings" element={<PlatformSettings />} />
               </Route>
 
-              {/* INSTRUCTOR PORTAL (Instructors & Super Admin) */}
+              {/* INSTRUCTOR PORTAL (Instructors Only) */}
               <Route
                 path="/instructor"
                 element={
-                  <ProtectedRoute allowedRoles={['instructor', 'super_admin']}>
+                  <ProtectedRoute allowedRoles={['instructor']}>
                     <InstructorLayout />
                   </ProtectedRoute>
                 }
@@ -115,11 +115,11 @@ export default function App() {
                 <Route path="sessions" element={<InstructorSessions />} />
               </Route>
 
-              {/* STUDENT LEARNING HUB (Students & Super Admin) */}
+              {/* STUDENT LEARNING HUB (Students Only) */}
               <Route
                 path="/student"
                 element={
-                  <ProtectedRoute allowedRoles={['student', 'super_admin']}>
+                  <ProtectedRoute allowedRoles={['student']}>
                     <StudentLayout />
                   </ProtectedRoute>
                 }
