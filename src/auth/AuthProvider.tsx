@@ -19,6 +19,7 @@ import {
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { useSessionTimeout } from './useSessionTimeout';
 import SessionWarningModal from './SessionWarningModal';
+import { notifyAccountCreated, notifyAccountApproved } from '../lib/emailService';
 
 // Brute-force rate limiting: 5 failed attempts = 5 min lockout
 interface RateLimitEntry {
@@ -413,6 +414,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       saveStoredUsers(updated);
       setUsers(updated);
 
+      // Automated registration notification emails (student/instructor & admin)
+      notifyAccountCreated({
+        name: newUser.name,
+        email: newUser.email,
+        phone: '',
+        role: newUser.role as 'student' | 'instructor',
+        status: newUser.status,
+        userId: newUser.id,
+      }).catch((emailErr) => {
+        console.warn('Account created email notification note:', emailErr);
+      });
+
       return { error: null, pendingApproval: true };
     },
     []
@@ -452,6 +465,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       saveStoredUsers(updated);
       setUsers(updated);
+
+      // Automated approval email notification to approved user
+      const targetUser = currentUsers.find((u) => u.id === userId);
+      if (targetUser) {
+        notifyAccountApproved({
+          name: targetUser.name,
+          email: targetUser.email,
+          role: targetUser.role as 'student' | 'instructor',
+        }).catch((emailErr) => {
+          console.warn('Account approved email notification note:', emailErr);
+        });
+      }
+
       return { error: null };
     },
     [user]
@@ -516,6 +542,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       saveStoredUsers(updated);
       setUsers(updated);
+
+      if (newStatus === 'active') {
+        const targetUser = currentUsers.find((u) => u.id === userId);
+        if (targetUser && targetUser.status !== 'active') {
+          notifyAccountApproved({
+            name: targetUser.name,
+            email: targetUser.email,
+            role: targetUser.role as 'student' | 'instructor',
+          }).catch(console.warn);
+        }
+      }
 
       if (user?.id === userId && newStatus !== 'active') {
         clearActiveSession();
@@ -686,6 +723,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updated = [newUser, ...currentUsers];
       saveStoredUsers(updated);
       setUsers(updated);
+
+      if (newUser.status === 'active') {
+        notifyAccountApproved({
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role as 'student' | 'instructor',
+        }).catch(console.warn);
+      } else {
+        notifyAccountCreated({
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role as 'student' | 'instructor',
+          status: newUser.status,
+          userId: newUser.id,
+        }).catch(console.warn);
+      }
       return { error: null, user: newUser };
     },
     [user]

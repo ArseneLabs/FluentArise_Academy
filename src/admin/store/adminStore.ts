@@ -5,9 +5,11 @@ import type {
   CurriculumItem,
   Submission,
   Order,
+  OrderStatus,
   Instructor,
   BlogPost,
   CalendarEvent,
+  PlatformSettingsData,
 } from '../types';
 import { isSupabaseConfigured, supabase } from '../../lib/supabase';
 
@@ -16,6 +18,21 @@ export const uid = (p = 'id') => `${p}_${Date.now().toString(36)}_${(idc++).toSt
 
 const STORAGE_KEY = 'fluentarise_admin_data_v3';
 
+const defaultSettings: PlatformSettingsData = {
+  currency: 'Rwandan Franc (Rwf)',
+  language: 'English',
+  timezone: 'Africa/Kigali',
+  emailNotifications: true,
+  submissionAlerts: true,
+  enrollmentAlerts: true,
+  paymentMethods: {
+    momo: true,
+    airtel: true,
+    card: true,
+    bank: true,
+  },
+};
+
 interface StoredData {
   courses: Course[];
   instructors: Instructor[];
@@ -23,6 +40,7 @@ interface StoredData {
   orders: Order[];
   blogPosts: BlogPost[];
   events: CalendarEvent[];
+  platformSettings: PlatformSettingsData;
 }
 
 function loadInitialData(): StoredData {
@@ -37,6 +55,7 @@ function loadInitialData(): StoredData {
         orders: parsed.orders || [],
         blogPosts: parsed.blogPosts || [],
         events: parsed.events || [],
+        platformSettings: parsed.platformSettings || defaultSettings,
       };
     }
   } catch (err) {
@@ -49,6 +68,7 @@ function loadInitialData(): StoredData {
     orders: [],
     blogPosts: [],
     events: [],
+    platformSettings: defaultSettings,
   };
 }
 
@@ -63,6 +83,7 @@ function persistData(state: StoredData) {
         orders: state.orders,
         blogPosts: state.blogPosts,
         events: state.events,
+        platformSettings: state.platformSettings,
       })
     );
   } catch (err) {
@@ -93,22 +114,33 @@ interface AdminState extends StoredData {
 
   // Submissions / grading
   addSubmission: (s: Submission) => void;
-  gradeSubmission: (id: string, score: number, feedback: string, status: 'graded' | 'resubmission_requested') => void;
+  gradeSubmission: (
+    id: string,
+    score: number,
+    feedback: string,
+    status: 'graded' | 'resubmission_requested',
+    improvementTips?: string
+  ) => void;
 
   // Orders
   addOrder: (o: Order) => void;
+  updateOrderStatus: (id: string, status: OrderStatus) => void;
 
   // Instructors
   addInstructor: (i: Instructor) => void;
   deleteInstructor: (id: string) => void;
 
-  // Events
+  // Events & Live Sessions
   addEvent: (e: CalendarEvent) => void;
+  updateEvent: (id: string, patch: Partial<CalendarEvent>) => void;
   deleteEvent: (id: string) => void;
 
   // Blog
   addBlogPost: (b: BlogPost) => void;
   deleteBlogPost: (id: string) => void;
+
+  // Platform Settings
+  updatePlatformSettings: (patch: Partial<PlatformSettingsData>) => void;
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
@@ -128,6 +160,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   orders: initial.orders,
   blogPosts: initial.blogPosts,
   events: initial.events,
+  platformSettings: initial.platformSettings,
 
   syncFromSupabase: async () => {
     if (!isSupabaseConfigured) return;
@@ -144,6 +177,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       const { data: dbBlogs } = await supabase.from('blog_posts').select('*').order('created_at', { ascending: false });
       // 6. Fetch events
       const { data: dbEvents } = await supabase.from('calendar_events').select('*');
+      // 7. Fetch platform settings
+      const { data: dbSettings } = await supabase.from('platform_settings').select('*').eq('id', 'global').maybeSingle();
 
       set((s) => {
         const courses: Course[] = dbCourses
@@ -188,6 +223,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         const submissions: Submission[] = dbSubmissions
           ? dbSubmissions.map((sub) => ({
               id: sub.id,
+              studentId: sub.student_id,
+              studentEmail: sub.student_email,
               studentName: sub.student_name,
               studentAvatar: sub.student_avatar || '',
               courseId: sub.course_id,
@@ -203,6 +240,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
               fileSize: sub.file_size,
               responseText: sub.response_text,
               feedback: sub.feedback,
+              improvementTips: sub.improvement_tips,
             }))
           : s.submissions;
 
@@ -212,10 +250,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
               reference: o.order_number || o.id,
               studentName: o.customer_name,
               studentEmail: o.customer_email,
-              courseTitle: Array.isArray(o.items) && o.items.length > 0 ? o.items[0].title : 'Course Enrollment',
+              customerPhone: o.customer_phone,
+              paymentReference: o.payment_reference,
+              courseTitle: Array.isArray(o.items) && o.items.length > 0 ? o.items.map((i: any) => i.title).join(', ') : 'Course Enrollment',
+              courseIds: Array.isArray(o.items) ? o.items.map((i: any) => i.id) : [],
               amount: o.total_amount,
               method: o.payment_method === 'momo' ? 'MTN Mobile Money' : 'Bank Transfer',
-              status: o.status === 'confirmed' ? 'paid' : (o.status as any),
+              status: o.status === 'confirmed' ? 'paid' : o.status === 'cancelled' ? 'failed' : 'pending',
               date: o.created_at,
             }))
           : s.orders;
@@ -243,13 +284,23 @@ export const useAdminStore = create<AdminState>((set, get) => ({
               startTime: e.start_time,
               endTime: e.end_time,
               instructor: e.instructor,
+              instructorId: e.instructor_id,
+              courseId: e.course_id,
+              courseTitle: e.course_title,
+              meetingUrl: e.meeting_url,
+              description: e.description,
               capacity: e.capacity || 50,
               enrolled: e.enrolled || 0,
               color: e.color || '#0284c7',
+              status: e.status || 'upcoming',
             }))
           : s.events;
 
-        const updated = { ...s, courses, instructors, submissions, orders, blogPosts, events };
+        const platformSettings: PlatformSettingsData = dbSettings?.settings
+          ? { ...defaultSettings, ...dbSettings.settings }
+          : s.platformSettings;
+
+        const updated = { ...s, courses, instructors, submissions, orders, blogPosts, events, platformSettings };
         persistData(updated);
         return updated;
       });
@@ -260,36 +311,39 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   addCourse: (c) => {
     if (isSupabaseConfigured) {
-      supabase
-        .from('courses')
-        .upsert({
-          id: c.id,
-          title: c.title,
-          category: c.category,
-          level: c.level,
-          price: c.price,
-          discount_price: c.discountPrice,
-          free: c.free,
-          thumbnail: c.thumbnail,
-          promo_video_url: c.promoVideoUrl,
-          instructor_id: c.instructorId,
-          published: c.published,
-          certificate: c.certificate,
-          assessments_enabled: c.assessmentsEnabled,
-          lessons_count: c.lessonsCount,
-          tasks_count: c.tasksCount,
-          students_count: c.studentsCount,
-          rating: c.rating,
-          revenue: c.revenue,
-          curriculum: c.curriculum,
-          created_at: c.createdAt,
-        })
-        .then(() => {})
-        .catch(console.warn);
+      (async () => {
+        try {
+          await supabase.from('courses').upsert({
+            id: c.id,
+            title: c.title,
+            category: c.category,
+            level: c.level,
+            price: c.price,
+            discount_price: c.discountPrice,
+            free: c.free,
+            thumbnail: c.thumbnail,
+            promo_video_url: c.promoVideoUrl,
+            instructor_id: c.instructorId,
+            published: c.published,
+            certificate: c.certificate,
+            assessments_enabled: c.assessmentsEnabled,
+            lessons_count: c.lessonsCount,
+            tasks_count: c.tasksCount,
+            students_count: c.studentsCount,
+            rating: c.rating,
+            revenue: c.revenue,
+            curriculum: c.curriculum,
+            created_at: c.createdAt,
+          });
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
 
     set((s) => {
-      const courses = [c, ...s.courses];
+      const exists = s.courses.some((x) => x.id === c.id);
+      const courses = exists ? s.courses.map((x) => (x.id === c.id ? c : x)) : [c, ...s.courses];
       persistData({ ...s, courses });
       return { courses };
     });
@@ -303,31 +357,35 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       if (isSupabaseConfigured) {
         const target = courses.find((c) => c.id === id);
         if (target) {
-          supabase
-            .from('courses')
-            .update({
-              title: target.title,
-              category: target.category,
-              level: target.level,
-              price: target.price,
-              discount_price: target.discountPrice,
-              free: target.free,
-              thumbnail: target.thumbnail,
-              promo_video_url: target.promoVideoUrl,
-              instructor_id: target.instructorId,
-              published: target.published,
-              certificate: target.certificate,
-              assessments_enabled: target.assessmentsEnabled,
-              lessons_count: target.lessonsCount,
-              tasks_count: target.tasksCount,
-              students_count: target.studentsCount,
-              rating: target.rating,
-              revenue: target.revenue,
-              curriculum: target.curriculum,
-            })
-            .eq('id', id)
-            .then(() => {})
-            .catch(console.warn);
+          (async () => {
+            try {
+              await supabase
+                .from('courses')
+                .update({
+                  title: target.title,
+                  category: target.category,
+                  level: target.level,
+                  price: target.price,
+                  discount_price: target.discountPrice,
+                  free: target.free,
+                  thumbnail: target.thumbnail,
+                  promo_video_url: target.promoVideoUrl,
+                  instructor_id: target.instructorId,
+                  published: target.published,
+                  certificate: target.certificate,
+                  assessments_enabled: target.assessmentsEnabled,
+                  lessons_count: target.lessonsCount,
+                  tasks_count: target.tasksCount,
+                  students_count: target.studentsCount,
+                  rating: target.rating,
+                  revenue: target.revenue,
+                  curriculum: target.curriculum,
+                })
+                .eq('id', id);
+            } catch (err) {
+              console.warn(err);
+            }
+          })();
         }
       }
 
@@ -337,7 +395,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   deleteCourse: (id) => {
     if (isSupabaseConfigured) {
-      supabase.from('courses').delete().eq('id', id).then(() => {}).catch(console.warn);
+      (async () => {
+        try {
+          await supabase.from('courses').delete().eq('id', id);
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
       const courses = s.courses.filter((c) => c.id !== id);
@@ -352,7 +416,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       persistData({ ...s, courses });
       const target = courses.find((c) => c.id === id);
       if (isSupabaseConfigured && target) {
-        supabase.from('courses').update({ published: target.published }).eq('id', id).then(() => {}).catch(console.warn);
+        (async () => {
+          try {
+            await supabase.from('courses').update({ published: target.published }).eq('id', id);
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
       }
       return { courses };
     });
@@ -368,7 +438,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       persistData({ ...s, courses });
       const target = courses.find((c) => c.id === courseId);
       if (isSupabaseConfigured && target) {
-        supabase.from('courses').update({ curriculum: target.curriculum }).eq('id', courseId).then(() => {}).catch(console.warn);
+        (async () => {
+          try {
+            await supabase.from('courses').update({ curriculum: target.curriculum }).eq('id', courseId);
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
       }
       return { courses };
     }),
@@ -386,7 +462,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       persistData({ ...s, courses });
       const target = courses.find((c) => c.id === courseId);
       if (isSupabaseConfigured && target) {
-        supabase.from('courses').update({ curriculum: target.curriculum }).eq('id', courseId).then(() => {}).catch(console.warn);
+        (async () => {
+          try {
+            await supabase.from('courses').update({ curriculum: target.curriculum }).eq('id', courseId);
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
       }
       return { courses };
     }),
@@ -401,7 +483,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       persistData({ ...s, courses });
       const target = courses.find((c) => c.id === courseId);
       if (isSupabaseConfigured && target) {
-        supabase.from('courses').update({ curriculum: target.curriculum }).eq('id', courseId).then(() => {}).catch(console.warn);
+        (async () => {
+          try {
+            await supabase.from('courses').update({ curriculum: target.curriculum }).eq('id', courseId);
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
       }
       return { courses };
     }),
@@ -426,16 +514,20 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       persistData({ ...s, courses });
       const target = courses.find((c) => c.id === courseId);
       if (isSupabaseConfigured && target) {
-        supabase
-          .from('courses')
-          .update({
-            curriculum: target.curriculum,
-            lessons_count: target.lessonsCount,
-            tasks_count: target.tasksCount,
-          })
-          .eq('id', courseId)
-          .then(() => {})
-          .catch(console.warn);
+        (async () => {
+          try {
+            await supabase
+              .from('courses')
+              .update({
+                curriculum: target.curriculum,
+                lessons_count: target.lessonsCount,
+                tasks_count: target.tasksCount,
+              })
+              .eq('id', courseId);
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
       }
       return { courses };
     }),
@@ -462,16 +554,20 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       persistData({ ...s, courses });
       const target = courses.find((c) => c.id === courseId);
       if (isSupabaseConfigured && target) {
-        supabase
-          .from('courses')
-          .update({
-            curriculum: target.curriculum,
-            lessons_count: target.lessonsCount,
-            tasks_count: target.tasksCount,
-          })
-          .eq('id', courseId)
-          .then(() => {})
-          .catch(console.warn);
+        (async () => {
+          try {
+            await supabase
+              .from('courses')
+              .update({
+                curriculum: target.curriculum,
+                lessons_count: target.lessonsCount,
+                tasks_count: target.tasksCount,
+              })
+              .eq('id', courseId);
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
       }
       return { courses };
     }),
@@ -496,66 +592,123 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       persistData({ ...s, courses });
       const target = courses.find((c) => c.id === courseId);
       if (isSupabaseConfigured && target) {
-        supabase
-          .from('courses')
-          .update({
-            curriculum: target.curriculum,
-            lessons_count: target.lessonsCount,
-            tasks_count: target.tasksCount,
-          })
-          .eq('id', courseId)
-          .then(() => {})
-          .catch(console.warn);
+        (async () => {
+          try {
+            await supabase
+              .from('courses')
+              .update({
+                curriculum: target.curriculum,
+                lessons_count: target.lessonsCount,
+                tasks_count: target.tasksCount,
+              })
+              .eq('id', courseId);
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
       }
       return { courses };
     }),
 
   addSubmission: (sub) => {
     if (isSupabaseConfigured) {
-      supabase
-        .from('submissions')
-        .upsert({
-          id: sub.id,
-          student_name: sub.studentName,
-          student_avatar: sub.studentAvatar,
-          course_id: sub.courseId,
-          course_title: sub.courseTitle,
-          task_id: sub.taskId,
-          task_title: sub.taskTitle,
-          task_kind: sub.taskKind,
-          submitted_date: sub.submittedDate,
-          status: sub.status,
-          score: sub.score,
-          max_score: sub.maxScore,
-          file_name: sub.fileName,
-          file_size: sub.fileSize,
-          response_text: sub.responseText,
-          feedback: sub.feedback,
-        })
-        .then(() => {})
-        .catch(console.warn);
+      (async () => {
+        try {
+          await supabase.from('submissions').upsert({
+            id: sub.id,
+            student_id: sub.studentId,
+            student_email: sub.studentEmail,
+            student_name: sub.studentName,
+            student_avatar: sub.studentAvatar,
+            course_id: sub.courseId,
+            course_title: sub.courseTitle,
+            task_id: sub.taskId,
+            task_title: sub.taskTitle,
+            task_kind: sub.taskKind,
+            submitted_date: sub.submittedDate,
+            status: sub.status,
+            score: sub.score,
+            max_score: sub.maxScore,
+            file_name: sub.fileName,
+            file_size: sub.fileSize,
+            response_text: sub.responseText,
+            feedback: sub.feedback,
+            improvement_tips: sub.improvementTips,
+          });
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
-      const submissions = [sub, ...s.submissions];
+      const exists = s.submissions.some((x) => x.id === sub.id);
+      const submissions = exists
+        ? s.submissions.map((x) => (x.id === sub.id ? sub : x))
+        : [sub, ...s.submissions];
       persistData({ ...s, submissions });
       return { submissions };
     });
   },
 
-  gradeSubmission: (id, score, feedback, status) => {
+  gradeSubmission: (id, score, feedback, status, improvementTips) => {
     if (isSupabaseConfigured) {
-      supabase
-        .from('submissions')
-        .update({ score, feedback, status })
-        .eq('id', id)
-        .then(() => {})
-        .catch(console.warn);
+      (async () => {
+        try {
+          await supabase
+            .from('submissions')
+            .update({ score, feedback, status, improvement_tips: improvementTips })
+            .eq('id', id);
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
+      const targetSub = s.submissions.find((sub) => sub.id === id);
       const submissions = s.submissions.map((sub) =>
-        sub.id === id ? { ...sub, score, feedback, status } : sub
+        sub.id === id
+          ? {
+              ...sub,
+              score,
+              feedback,
+              status,
+              ...(improvementTips !== undefined && { improvementTips }),
+            }
+          : sub
       );
       persistData({ ...s, submissions });
+
+      // Notify student via email about the grade
+      if (targetSub) {
+        import('../../lib/emailService')
+          .then(({ notifyAssignmentGraded }) => {
+            try {
+              const rawUsers = localStorage.getItem('fluentarise_auth_users_v2');
+              const users = rawUsers ? JSON.parse(rawUsers) : [];
+              const matched = users.find(
+                (u: any) =>
+                  (targetSub.studentEmail && u.email?.toLowerCase() === targetSub.studentEmail.toLowerCase()) ||
+                  u.name?.toLowerCase() === targetSub.studentName?.toLowerCase()
+              );
+              if (matched?.email || targetSub.studentEmail) {
+                notifyAssignmentGraded({
+                  studentName: targetSub.studentName,
+                  studentEmail: targetSub.studentEmail || matched.email,
+                  taskTitle: targetSub.taskTitle,
+                  courseTitle: targetSub.courseTitle,
+                  score,
+                  maxScore: targetSub.maxScore,
+                  feedback,
+                  improvementTips,
+                }).catch(console.warn);
+              }
+            } catch (err) {
+              console.warn('Grade email dispatch note:', err);
+            }
+          })
+          .catch(console.warn);
+      }
+
       return { submissions };
     });
   },
@@ -567,26 +720,50 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       return { orders };
     }),
 
-  addInstructor: (i) => {
+  updateOrderStatus: (id, status) => {
     if (isSupabaseConfigured) {
-      supabase
-        .from('instructors')
-        .upsert({
-          id: i.id,
-          name: i.name,
-          title: i.title,
-          bio: i.bio,
-          avatar: i.avatar,
-          email: i.email,
-          course_ids: i.courseIds,
-          rating: i.rating,
-          students: i.students,
-        })
-        .then(() => {})
-        .catch(console.warn);
+      const dbStatus = status === 'paid' ? 'confirmed' : status === 'failed' ? 'cancelled' : 'pending';
+      (async () => {
+        try {
+          await supabase
+            .from('orders')
+            .update({ status: dbStatus })
+            .or(`id.eq.${id},order_number.eq.${id}`);
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
-      const instructors = [i, ...s.instructors];
+      const orders = s.orders.map((o) => (o.id === id || o.reference === id ? { ...o, status } : o));
+      persistData({ ...s, orders });
+      return { orders };
+    });
+  },
+
+  addInstructor: (i) => {
+    if (isSupabaseConfigured) {
+      (async () => {
+        try {
+          await supabase.from('instructors').upsert({
+            id: i.id,
+            name: i.name,
+            title: i.title,
+            bio: i.bio,
+            avatar: i.avatar,
+            email: i.email,
+            course_ids: i.courseIds,
+            rating: i.rating,
+            students: i.students,
+          });
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
+    }
+    set((s) => {
+      const exists = s.instructors.some((x) => x.id === i.id);
+      const instructors = exists ? s.instructors.map((x) => (x.id === i.id ? i : x)) : [i, ...s.instructors];
       persistData({ ...s, instructors });
       return { instructors };
     });
@@ -594,7 +771,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   deleteInstructor: (id) => {
     if (isSupabaseConfigured) {
-      supabase.from('instructors').delete().eq('id', id).then(() => {}).catch(console.warn);
+      (async () => {
+        try {
+          await supabase.from('instructors').delete().eq('id', id);
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
       const instructors = s.instructors.filter((i) => i.id !== id);
@@ -605,33 +788,85 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   addEvent: (e) => {
     if (isSupabaseConfigured) {
-      supabase
-        .from('calendar_events')
-        .upsert({
-          id: e.id,
-          title: e.title,
-          type: e.type,
-          date: e.date,
-          start_time: e.startTime,
-          end_time: e.endTime,
-          instructor: e.instructor,
-          capacity: e.capacity,
-          enrolled: e.enrolled,
-          color: e.color,
-        })
-        .then(() => {})
-        .catch(console.warn);
+      (async () => {
+        try {
+          await supabase.from('calendar_events').upsert({
+            id: e.id,
+            title: e.title,
+            type: e.type,
+            date: e.date,
+            start_time: e.startTime,
+            end_time: e.endTime,
+            instructor: e.instructor,
+            instructor_id: e.instructorId,
+            course_id: e.courseId,
+            course_title: e.courseTitle,
+            meeting_url: e.meetingUrl,
+            description: e.description,
+            capacity: e.capacity,
+            enrolled: e.enrolled,
+            color: e.color,
+            status: e.status || 'upcoming',
+          });
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
-      const events = [e, ...s.events];
+      const exists = s.events.some((x) => x.id === e.id);
+      const events = exists ? s.events.map((x) => (x.id === e.id ? e : x)) : [e, ...s.events];
       persistData({ ...s, events });
+      return { events };
+    });
+  },
+
+  updateEvent: (id, patch) => {
+    set((s) => {
+      const events = s.events.map((e) => (e.id === id ? { ...e, ...patch } : e));
+      persistData({ ...s, events });
+      const target = events.find((e) => e.id === id);
+      if (isSupabaseConfigured && target) {
+        (async () => {
+          try {
+            await supabase
+              .from('calendar_events')
+              .update({
+                title: target.title,
+                type: target.type,
+                date: target.date,
+                start_time: target.startTime,
+                end_time: target.endTime,
+                instructor: target.instructor,
+                instructor_id: target.instructorId,
+                course_id: target.courseId,
+                course_title: target.courseTitle,
+                meeting_url: target.meetingUrl,
+                description: target.description,
+                capacity: target.capacity,
+                enrolled: target.enrolled,
+                color: target.color,
+                status: target.status,
+              })
+              .eq('id', id);
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
+      }
       return { events };
     });
   },
 
   deleteEvent: (id) => {
     if (isSupabaseConfigured) {
-      supabase.from('calendar_events').delete().eq('id', id).then(() => {}).catch(console.warn);
+      (async () => {
+        try {
+          await supabase.from('calendar_events').delete().eq('id', id);
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
       const events = s.events.filter((e) => e.id !== id);
@@ -642,21 +877,23 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   addBlogPost: (b) => {
     if (isSupabaseConfigured) {
-      supabase
-        .from('blog_posts')
-        .upsert({
-          id: b.id,
-          title: b.title,
-          excerpt: b.excerpt,
-          body: b.body,
-          author: b.author,
-          tags: b.tags,
-          status: b.status,
-          published_at: b.publishedAt,
-          cover: b.cover,
-        })
-        .then(() => {})
-        .catch(console.warn);
+      (async () => {
+        try {
+          await supabase.from('blog_posts').upsert({
+            id: b.id,
+            title: b.title,
+            excerpt: b.excerpt,
+            body: b.body,
+            author: b.author,
+            tags: b.tags,
+            status: b.status,
+            published_at: b.publishedAt,
+            cover: b.cover,
+          });
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
       const blogPosts = [b, ...s.blogPosts];
@@ -667,12 +904,39 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   deleteBlogPost: (id) => {
     if (isSupabaseConfigured) {
-      supabase.from('blog_posts').delete().eq('id', id).then(() => {}).catch(console.warn);
+      (async () => {
+        try {
+          await supabase.from('blog_posts').delete().eq('id', id);
+        } catch (err) {
+          console.warn(err);
+        }
+      })();
     }
     set((s) => {
       const blogPosts = s.blogPosts.filter((b) => b.id !== id);
       persistData({ ...s, blogPosts });
       return { blogPosts };
+    });
+  },
+
+  updatePlatformSettings: (patch) => {
+    set((s) => {
+      const platformSettings = { ...s.platformSettings, ...patch };
+      persistData({ ...s, platformSettings });
+      if (isSupabaseConfigured) {
+        (async () => {
+          try {
+            await supabase.from('platform_settings').upsert({
+              id: 'global',
+              settings: platformSettings,
+              updated_at: new Date().toISOString(),
+            });
+          } catch (err) {
+            console.warn(err);
+          }
+        })();
+      }
+      return { platformSettings };
     });
   },
 }));

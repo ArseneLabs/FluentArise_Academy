@@ -108,7 +108,7 @@ export default function UserManagement() {
   const handleApprove = async (u: AppUser) => {
     await approveUser(u.id);
     setFeedback({
-      message: `Account for ${u.name} (${u.email}) has been approved and activated! They can now log in.`,
+      message: `Account for ${u.name} (${u.email}) has been approved and activated! An automated approval email has been sent to them.`,
       tone: 'success',
     });
     setTimeout(() => setFeedback(null), 5000);

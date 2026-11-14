@@ -17,6 +17,7 @@ const Events = lazy(() => import('@/pages/Events'));
 const Blog = lazy(() => import('@/pages/Blog'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const Checkout = lazy(() => import('@/pages/Checkout'));
+const CheckoutCallback = lazy(() => import('@/pages/CheckoutCallback'));
 
 // Authentication Gateway
 const AuthPage = lazy(() => import('./auth/AuthPage'));
@@ -39,6 +40,7 @@ const PlatformSettings = lazy(() => import('./admin/pages/PlatformSettings'));
 const InstructorLayout = lazy(() => import('./instructor/components/InstructorLayout'));
 const InstructorOverview = lazy(() => import('./instructor/pages/InstructorOverview'));
 const InstructorCourses = lazy(() => import('./instructor/pages/InstructorCourses'));
+const InstructorCurriculumBuilder = lazy(() => import('./instructor/pages/InstructorCurriculumBuilder'));
 const InstructorAssessments = lazy(() => import('./instructor/pages/InstructorAssessments'));
 const InstructorSubmissions = lazy(() => import('./instructor/pages/InstructorSubmissions'));
 const InstructorStudents = lazy(() => import('./instructor/pages/InstructorStudents'));
@@ -50,6 +52,7 @@ const StudentDashboard = lazy(() => import('./student/pages/StudentDashboard'));
 const StudentCourses = lazy(() => import('./student/pages/StudentCourses'));
 const StudentClassroom = lazy(() => import('./student/pages/StudentClassroom'));
 const StudentTasks = lazy(() => import('./student/pages/StudentTasks'));
+const StudentLiveClasses = lazy(() => import('./student/pages/StudentLiveClasses'));
 const StudentCertificates = lazy(() => import('./student/pages/StudentCertificates'));
 const StudentOrders = lazy(() => import('./student/pages/StudentOrders'));
 
@@ -70,6 +73,7 @@ export default function App() {
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/checkout" element={<Checkout />} />
+                <Route path="/checkout/callback" element={<CheckoutCallback />} />
               </Route>
 
               {/* Authentication Gateway */}
@@ -109,6 +113,7 @@ export default function App() {
               >
                 <Route index element={<InstructorOverview />} />
                 <Route path="courses" element={<InstructorCourses />} />
+                <Route path="courses/:id/curriculum" element={<InstructorCurriculumBuilder />} />
                 <Route path="assessments" element={<InstructorAssessments />} />
                 <Route path="submissions" element={<InstructorSubmissions />} />
                 <Route path="students" element={<InstructorStudents />} />
@@ -128,6 +133,7 @@ export default function App() {
                 <Route path="courses" element={<StudentCourses />} />
                 <Route path="courses/:id" element={<StudentClassroom />} />
                 <Route path="tasks" element={<StudentTasks />} />
+                <Route path="live-classes" element={<StudentLiveClasses />} />
                 <Route path="certificates" element={<StudentCertificates />} />
                 <Route path="orders" element={<StudentOrders />} />
               </Route>

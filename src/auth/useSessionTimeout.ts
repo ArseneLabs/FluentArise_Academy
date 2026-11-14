@@ -77,7 +77,8 @@ export function useSessionTimeout(
 
   // 2. Multi-Tab Cross-Tab Sync via BroadcastChannel
   useEffect(() => {
-    if (!authBroadcast) return;
+    const channel = authBroadcast;
+    if (!channel) return;
 
     const handleBroadcast = (event: MessageEvent) => {
       if (event.data?.type === 'LOGOUT') {
@@ -90,9 +91,9 @@ export function useSessionTimeout(
       }
     };
 
-    authBroadcast.addEventListener('message', handleBroadcast);
+    channel.addEventListener('message', handleBroadcast);
     return () => {
-      authBroadcast.removeEventListener('message', handleBroadcast);
+      channel.removeEventListener('message', handleBroadcast);
     };
   }, []);
 

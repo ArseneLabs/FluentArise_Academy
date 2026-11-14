@@ -14,6 +14,7 @@ import {
   Globe,
   ChevronDown,
   Sparkles,
+  Video,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 
@@ -28,6 +29,7 @@ const navItems: NavItem[] = [
   { to: '/student', label: 'My Learning Hub', icon: <LayoutDashboard size={18} />, end: true },
   { to: '/student/courses', label: 'My Enrolled Courses', icon: <BookOpen size={18} /> },
   { to: '/student/tasks', label: 'Tasks & Quizzes', icon: <HelpCircle size={18} /> },
+  { to: '/student/live-classes', label: 'Live Classes & Workshops', icon: <Video size={18} /> },
   { to: '/student/certificates', label: 'My Certificates', icon: <Award size={18} /> },
   { to: '/student/orders', label: 'Order History', icon: <ShoppingCart size={18} /> },
 ];

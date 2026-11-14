@@ -119,6 +119,8 @@ export type SubmissionStatus =
 
 export interface Submission {
   id: string;
+  studentId?: string;
+  studentEmail?: string;
   studentName: string;
   studentAvatar: string;
   courseId: string;
@@ -134,6 +136,7 @@ export interface Submission {
   fileSize?: string;
   responseText?: string;
   feedback?: string;
+  improvementTips?: string;
 }
 
 export type OrderStatus = 'paid' | 'pending' | 'refunded' | 'failed';
@@ -149,6 +152,9 @@ export interface Order {
   method: PaymentMethod;
   status: OrderStatus;
   date: string;
+  paymentReference?: string;
+  customerPhone?: string;
+  courseIds?: string[];
 }
 
 export interface BlogPost {
@@ -171,7 +177,28 @@ export interface CalendarEvent {
   startTime: string;
   endTime: string;
   instructor: string;
+  instructorId?: string;
+  courseId?: string;
+  courseTitle?: string;
+  meetingUrl?: string;
+  description?: string;
   capacity: number;
   enrolled: number;
   color: string;
+  status?: 'upcoming' | 'live' | 'completed' | 'cancelled';
+}
+
+export interface PlatformSettingsData {
+  currency?: string;
+  language?: string;
+  timezone?: string;
+  emailNotifications?: boolean;
+  submissionAlerts?: boolean;
+  enrollmentAlerts?: boolean;
+  paymentMethods?: {
+    momo: boolean;
+    airtel: boolean;
+    card: boolean;
+    bank: boolean;
+  };
 }

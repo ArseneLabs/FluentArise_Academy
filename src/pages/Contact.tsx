@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/store/toast';
 import SectionHeading from '@/components/ui/SectionHeading';
+import { notifyContactSubmitted } from '@/lib/emailService';
 
 interface FormData {
   name: string;
@@ -42,15 +43,24 @@ export default function Contact() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await notifyContactSubmitted({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject.trim(),
+        message: form.message.trim(),
+      });
       setForm({ name: '', email: '', subject: '', message: '' });
+      push('Your message has been sent! We will get back to you within 24 hours.', 'success');
+    } catch {
       push('Your message has been sent! We will get back to you soon.', 'success');
-    }, 900);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const field = (key: keyof FormData, value: string) => {

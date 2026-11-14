@@ -9,6 +9,11 @@ import {
   Building2,
   TrendingUp,
   Wallet,
+  Clock,
+  X,
+  AlertCircle,
+  CheckCircle2,
+  Copy,
 } from 'lucide-react';
 import { useAdminStore, uid } from '../store/adminStore';
 import { PageHeader } from '../components/AdminLayout';
@@ -16,6 +21,7 @@ import Badge from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
 import { formatRwf, formatDate, relativeDate } from '../lib/format';
 import type { Order, PaymentMethod, OrderStatus } from '../types';
+import { notifyOrderStatusChanged } from '../../lib/emailService';
 
 const methodIcon: Record<PaymentMethod, React.ReactNode> = {
   'MTN Mobile Money': <Smartphone size={14} />,
@@ -32,13 +38,24 @@ const statusTone: Record<OrderStatus, 'success' | 'warning' | 'error' | 'neutral
 };
 
 export default function EnrollmentsOrders() {
-  const { orders, courses, addOrder } = useAdminStore();
+  const { orders, courses, addOrder, updateOrderStatus } = useAdminStore();
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [manualOpen, setManualOpen] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ message: string; tone: 'success' | 'info' | 'error' } | null>(null);
 
   const filtered = orders.filter((o) => {
-    if (query && !o.studentName.toLowerCase().includes(query.toLowerCase()) && !o.reference.toLowerCase().includes(query.toLowerCase())) return false;
+    if (
+      query &&
+      !o.studentName.toLowerCase().includes(query.toLowerCase()) &&
+      !o.studentEmail.toLowerCase().includes(query.toLowerCase()) &&
+      !o.reference.toLowerCase().includes(query.toLowerCase()) &&
+      !(o.paymentReference && o.paymentReference.toLowerCase().includes(query.toLowerCase())) &&
+      !o.courseTitle.toLowerCase().includes(query.toLowerCase())
+    ) {
+      return false;
+    }
     if (filterStatus !== 'all' && o.status !== filterStatus) return false;
     return true;
   });
@@ -46,11 +63,68 @@ export default function EnrollmentsOrders() {
   const totalRevenue = orders.filter((o) => o.status === 'paid').reduce((s, o) => s + o.amount, 0);
   const pendingCount = orders.filter((o) => o.status === 'pending').length;
 
+  const showFeedback = (message: string, tone: 'success' | 'info' | 'error' = 'success') => {
+    setFeedback({ message, tone });
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const handleApprove = (order: Order) => {
+    updateOrderStatus(order.id, 'paid');
+    notifyOrderStatusChanged({
+      orderNumber: order.reference,
+      customerName: order.studentName,
+      customerEmail: order.studentEmail,
+      newStatus: 'confirmed',
+      totalAmount: order.amount,
+      paymentReference: order.paymentReference,
+      items: [{ id: '', title: order.courseTitle, price: order.amount }],
+    }).catch(console.warn);
+    showFeedback(`Payment verified & access granted to ${order.studentName} for "${order.courseTitle}". Confirmation email sent.`, 'success');
+  };
+
+  const handleReject = (order: Order) => {
+    if (confirm(`Reject payment reference for order ${order.reference}? This will keep course access locked.`)) {
+      updateOrderStatus(order.id, 'failed');
+      notifyOrderStatusChanged({
+        orderNumber: order.reference,
+        customerName: order.studentName,
+        customerEmail: order.studentEmail,
+        newStatus: 'failed',
+        totalAmount: order.amount,
+        paymentReference: order.paymentReference,
+        note: 'Payment reference could not be verified by administration. Please reach out to support if you believe this is an error.',
+      }).catch(console.warn);
+      showFeedback(`Order ${order.reference} marked as unverified / rejected. Notice email sent.`, 'info');
+    }
+  };
+
+  const handleRevoke = (order: Order) => {
+    if (confirm(`Revoke course access for ${order.studentName}?`)) {
+      updateOrderStatus(order.id, 'pending');
+      notifyOrderStatusChanged({
+        orderNumber: order.reference,
+        customerName: order.studentName,
+        customerEmail: order.studentEmail,
+        newStatus: 'pending',
+        totalAmount: order.amount,
+        paymentReference: order.paymentReference,
+        note: 'Course access has been revoked by administration.',
+      }).catch(console.warn);
+      showFeedback(`Course access revoked for order ${order.reference}. Client notified via email.`, 'info');
+    }
+  };
+
+  const copyText = (text: string, label: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 1800);
+  };
+
   return (
     <>
       <PageHeader
         title="Enrollments & Orders"
-        subtitle="Track payments and grant manual course access"
+        subtitle="Verify offline payments and grant course access to students"
         icon={<ShoppingCart size={20} />}
         actions={
           <button className="btn-primary" onClick={() => setManualOpen(true)}>
@@ -58,6 +132,51 @@ export default function EnrollmentsOrders() {
           </button>
         }
       />
+
+      {feedback && (
+        <div
+          className={`mb-5 flex items-center justify-between rounded-xl p-4 text-sm font-semibold transition ${
+            feedback.tone === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              : feedback.tone === 'error'
+              ? 'bg-rose-50 text-rose-800 border border-rose-200'
+              : 'bg-blue-50 text-blue-800 border border-blue-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {feedback.tone === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            <span>{feedback.message}</span>
+          </div>
+          <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-slate-600">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Pending verification alert banner */}
+      {pendingCount > 0 && (
+        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-800/40 dark:bg-amber-950/20">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400">
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-amber-950 dark:text-amber-200">
+                {pendingCount} order{pendingCount > 1 ? 's' : ''} awaiting payment verification
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Check your MTN MoMo / Bank statements for each transaction ID before clicking &ldquo;Approve&rdquo;.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setFilterStatus('pending')}
+            className="self-start rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition sm:self-center"
+          >
+            Show Pending Only
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -67,7 +186,7 @@ export default function EnrollmentsOrders() {
           </div>
           <div>
             <p className="font-display text-xl font-bold text-slate-900 dark:text-white">{formatRwf(totalRevenue)}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Total collected</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Total verified collected</p>
           </div>
         </div>
         <div className="card flex items-center gap-4 p-5">
@@ -81,11 +200,11 @@ export default function EnrollmentsOrders() {
         </div>
         <div className="card flex items-center gap-4 p-5">
           <div className="grid h-11 w-11 place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/15">
-            <ShoppingCart size={20} />
+            <Clock size={20} />
           </div>
           <div>
             <p className="font-display text-xl font-bold text-slate-900 dark:text-white">{pendingCount}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Pending payments</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Pending payment reviews</p>
           </div>
         </div>
       </div>
@@ -94,14 +213,19 @@ export default function EnrollmentsOrders() {
       <div className="card mb-5 flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input pl-10" placeholder="Search by student or reference…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input
+            className="input pl-10"
+            placeholder="Search by student name, email, order reference, or TxID…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
         <select className="input sm:w-48" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="all">All statuses</option>
-          <option value="paid">Paid</option>
-          <option value="pending">Pending</option>
-          <option value="refunded">Refunded</option>
-          <option value="failed">Failed</option>
+          <option value="all">All statuses ({orders.length})</option>
+          <option value="pending">Pending Verification ({pendingCount})</option>
+          <option value="paid">Paid & Enrolled ({orders.filter((o) => o.status === 'paid').length})</option>
+          <option value="failed">Rejected ({orders.filter((o) => o.status === 'failed').length})</option>
+          <option value="refunded">Refunded ({orders.filter((o) => o.status === 'refunded').length})</option>
         </select>
       </div>
 
@@ -111,24 +235,48 @@ export default function EnrollmentsOrders() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-ink-700">
-                <th className="px-5 py-3">Reference</th>
+                <th className="px-5 py-3">Order & Ref</th>
                 <th className="px-5 py-3">Student</th>
                 <th className="px-5 py-3">Course</th>
                 <th className="px-5 py-3">Amount</th>
                 <th className="px-5 py-3">Method</th>
                 <th className="px-5 py-3">Date</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3 text-right">Verification Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-ink-700/60">
               {filtered.map((o) => (
                 <tr key={o.id} className="table-row-hover">
-                  <td className="px-5 py-3 font-mono text-xs font-semibold text-slate-600 dark:text-slate-300">{o.reference}</td>
+                  <td className="px-5 py-3">
+                    <p className="font-mono text-xs font-bold text-slate-700 dark:text-slate-200">{o.reference}</p>
+                    {o.paymentReference ? (
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <span className="font-mono text-[11px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-1.5 py-0.5 rounded">
+                          TxID: {o.paymentReference}
+                        </span>
+                        <button
+                          onClick={() => copyText(o.paymentReference!, o.reference)}
+                          className="text-slate-400 hover:text-slate-600"
+                          title="Copy Transaction ID"
+                        >
+                          {copied === o.reference ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">No TxID</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3">
                     <p className="font-semibold text-slate-800 dark:text-slate-100">{o.studentName}</p>
                     <p className="text-xs text-slate-400">{o.studentEmail}</p>
+                    {o.customerPhone && (
+                      <p className="text-[11px] text-slate-400">Tel: {o.customerPhone}</p>
+                    )}
                   </td>
-                  <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{o.courseTitle}</td>
+                  <td className="px-5 py-3 text-slate-600 dark:text-slate-300 max-w-xs truncate" title={o.courseTitle}>
+                    {o.courseTitle}
+                  </td>
                   <td className="px-5 py-3 font-bold text-slate-800 dark:text-slate-100">{formatRwf(o.amount)}</td>
                   <td className="px-5 py-3">
                     <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
@@ -141,8 +289,58 @@ export default function EnrollmentsOrders() {
                   </td>
                   <td className="px-5 py-3">
                     <Badge tone={statusTone[o.status]} dot>
-                      {o.status}
+                      {o.status === 'paid' ? 'Paid & Active' : o.status === 'pending' ? 'Pending Review' : o.status}
                     </Badge>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    {o.status === 'pending' && (
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleApprove(o)}
+                          className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
+                          title="Verify payment and unlock course for student"
+                        >
+                          <Check size={14} /> Approve & Unlock
+                        </button>
+                        <button
+                          onClick={() => handleReject(o)}
+                          className="inline-flex items-center gap-1 rounded-xl bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100 transition"
+                          title="Mark as invalid payment reference"
+                        >
+                          <X size={14} /> Reject
+                        </button>
+                      </div>
+                    )}
+                    {o.status === 'paid' && (
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          Enrolled
+                        </span>
+                        <button
+                          onClick={() => handleRevoke(o)}
+                          className="text-[11px] text-slate-400 hover:text-rose-600 transition underline"
+                          title="Revoke access and set back to pending"
+                        >
+                          Revoke
+                        </button>
+                      </div>
+                    )}
+                    {o.status === 'failed' && (
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="text-xs font-semibold text-rose-500">
+                          Rejected
+                        </span>
+                        <button
+                          onClick={() => handleApprove(o)}
+                          className="text-xs font-bold text-purple-600 hover:text-purple-700 transition underline"
+                        >
+                          Approve
+                        </button>
+                      </div>
+                    )}
+                    {o.status === 'refunded' && (
+                      <span className="text-xs text-slate-400">Refunded</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -174,6 +372,7 @@ export default function EnrollmentsOrders() {
               date: new Date().toISOString(),
             };
             addOrder(order);
+            showFeedback(`Manual enrollment granted to ${data.studentName} for "${data.courseTitle}".`, 'success');
             setManualOpen(false);
           }}
         />

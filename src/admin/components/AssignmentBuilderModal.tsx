@@ -70,7 +70,7 @@ export default function AssignmentBuilderModal({
         } else if (res.url) {
           setRefFiles((prev) => [
             ...prev,
-            { name: file.name, size: res.sizeFormatted, url: res.url },
+            { name: file.name, size: res.sizeFormatted, url: res.url || undefined },
           ]);
         }
       } catch (err: any) {
